@@ -1,4 +1,4 @@
-local _tl_compat; if (tonumber((_VERSION or ''):match('[%d.]*$')) or 0) < 5.3 then local p, m = pcall(require, 'compat53.module'); if p then _tl_compat = m end end; local pairs = _tl_compat and _tl_compat.pairs or pairs; local core = require('openmw.core')
+local _tl_compat; if (tonumber((_VERSION or ''):match('[%d.]*$')) or 0) < 5.3 then local p, m = pcall(require, 'compat53.module'); if p then _tl_compat = m end end; local pairs = _tl_compat and _tl_compat.pairs or pairs; local string = _tl_compat and _tl_compat.string or string; local core = require('openmw.core')
 local types = require('openmw.types')
 local anim = require('openmw.animation')
 local this = require('openmw.self')
@@ -11,7 +11,27 @@ local storage = require('openmw.storage')
 
 
 
-local MWVars
+local EQUIP_SLOTS = {
+   ["helmet"] = 0,
+   ["cuirass"] = 1,
+   ["greaves"] = 2,
+   ["leftpauldron"] = 3,
+   ["rightpauldron"] = 4,
+   ["leftgauntlet"] = 5,
+   ["rightgauntlet"] = 6,
+   ["boots"] = 7,
+   ["shirt"] = 8,
+   ["pants"] = 9,
+   ["skirt"] = 10,
+   ["robe"] = 11,
+   ["leftring"] = 12,
+   ["rightring"] = 13,
+   ["amulet"] = 14,
+   ["belt"] = 15,
+   ["carriedright"] = 16,
+   ["carriedleft"] = 17,
+   ["ammunition"] = 18,
+}
 
 local DYNAMIC_STATS = {
    ["health"] = types.Actor.stats.dynamic.health,
@@ -36,25 +56,9 @@ local argonianTaper = {
 
          },
          equipmentslot = {
-            ["Ammunition"] = true,
-            ["Amulet"] = false,
-            "Belt",
-            "Boots",
-            "CarriedLeft",
-            "CarriedRight",
-            "Cuirass",
-            "Greaves",
-            "Helmet",
-            "LeftGauntlet",
-            "LeftPauldron",
-            "LeftRing",
-            "Pants",
-            "RightGauntlet",
-            "RightPauldron",
-            "RightRing",
-            "Robe",
-            "Shirt",
-            "Skirt",
+            ["Pants"] = false,
+            ["Robe"] = false,
+            ["Skirt"] = false,
          },
       },
    },
@@ -92,12 +96,18 @@ local function removeCosmetic(effectID)
    anim.removeVfx(this, effectID)
 end
 
-local function checkEquipmentSlots()
-
+local function checkEquipmentSlots(equipSlots)
+   for k, v in pairs(equipSlots) do
+      local equipped = types.Actor.getEquipment(this.object, EQUIP_SLOTS[string.lower(k)])
+      if (equipped == nil and v == true) or (equipped ~= nil and v == false) then
+         return false
+      end
+   end
+   return true
 end
 
-local function checkDynStats(attributes)
-   for k, range in pairs(attributes) do
+local function checkDynStats(dynStats)
+   for k, range in pairs(dynStats) do
       local getStat = DYNAMIC_STATS[k];
       local dynStat = getStat and getStat(this.object)
       if dynStat and compareRange(dynStat.current, range, dynStat.base + dynStat.modifier) == false then
@@ -121,19 +131,20 @@ local function checkMWVars(mwvars)
    return true
 end
 
-local function checkDead(actorDead, condDead)
-   return actorDead == condDead
+local function checkDead(condDead)
+   return types.Actor.isDead(this.object) == condDead
 end
 
-local function checkWerewolf(actorWerewolf, condWerewolf)
-   return actorWerewolf == condWerewolf
+local function checkWerewolf(condWerewolf)
+   return types.NPC.isWerewolf(this.object) == condWerewolf
 end
 
-local function checkSex(actorSex, condSex)
-   return actorSex == condSex
+local function checkSex(condSex)
+   return types.NPC.record(this.object).isMale == condSex
 end
 
-local function checkRace(actorRace, condRace)
+local function checkRace(condRace)
+   local actorRace = types.NPC.record(this.object).race
    for i = 1, #condRace do
       if actorRace == condRace[i] then
          return true
@@ -147,48 +158,36 @@ local function checkEffectConditions()
    local effectID = "taper"
 
    for i = 1, #conditions do
-      if conditions[i].race ~= nil and checkRace(types.NPC.record(this.object).race, conditions[i].race) == false then
-
-
+      if conditions[i].race ~= nil and checkRace(conditions[i].race) == false then
          removeCosmetic(effectID)
          return
       end
-      if conditions[i].isMale ~= nil and checkSex(types.NPC.record(this.object).isMale, conditions[i].isMale) == false then
-
-
+      if conditions[i].isMale ~= nil and checkSex(conditions[i].isMale) == false then
          removeCosmetic(effectID)
          return
       end
-      if conditions[i].werewolf ~= nil and checkWerewolf(types.NPC.isWerewolf(this.object), conditions[i].werewolf) == false then
-
-
+      if conditions[i].werewolf ~= nil and checkWerewolf(conditions[i].werewolf) == false then
          removeCosmetic(effectID)
          return
       end
-      if conditions[i].dead ~= nil and checkDead(types.Actor.isDead(this.object), conditions[i].dead) == false then
-
-
+      if conditions[i].dead ~= nil and checkDead(conditions[i].dead) == false then
          removeCosmetic(effectID)
          return
       end
       if conditions[i].mwvars ~= nil and checkMWVars(conditions[i].mwvars) == false then
-
-
          removeCosmetic(effectID)
          return
       end
       if conditions[i].dynStats ~= nil and checkDynStats(conditions[i].dynStats) == false then
+         removeCosmetic(effectID)
+         return
+      end
+      if conditions[i].equipmentslot ~= nil and checkEquipmentSlots(conditions[i].equipmentslot) == false then
 
 
          removeCosmetic(effectID)
          return
       end
-
-
-
-
-
-
    end
    applyCosmetic(effectID, argonianTaper.node, argonianTaper.mesh)
 end
@@ -200,14 +199,5 @@ return {
       end,
       onUpdate = checkEffectConditions,
    },
-   eventHandlers = {
-      ["fetchMWVars"] = function(data)
-         MWVars = data
-         for k, v in pairs(data) do
-            if MWVars[k] ~= v then
-               MWVars[k] = v
-            end
-         end
-      end,
-   },
+   eventHandlers = {},
 }

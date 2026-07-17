@@ -26,7 +26,7 @@ need to filter for equipment slots
 				health: {min = 50%, max = 100%,},
 				fatigue: 100,
 			},
-			equipmentslot (true for must be unequipped, false for must be equipped. exclude if either): {
+			equipmentslot (true for must be equipped, false for must be unequipped. exclude if either): {
 				"Ammunition" = true,
 				"Amulet" = false,
 				"Belt",

@@ -11,7 +11,27 @@ local interface Range
 	maxValue: number
 end
 
-local MWVars: {string: number}
+local EQUIP_SLOTS <const>: { string: number } = {
+	["helmet"] = 0,
+	["cuirass"] = 1,
+	["greaves"] = 2,
+	["leftpauldron"] = 3,
+	["rightpauldron"] = 4,
+	["leftgauntlet"] = 5,
+	["rightgauntlet"] = 6,
+	["boots"] = 7,
+	["shirt"] = 8,
+	["pants"] = 9,
+	["skirt"] = 10,
+	["robe"] = 11,
+	["leftring"] = 12,
+	["rightring"] = 13,
+	["amulet"] = 14,
+	["belt"] = 15,
+	["carriedright"] = 16,
+	["carriedleft"] = 17,
+	["ammunition"] = 18,
+}
 
 local DYNAMIC_STATS <const>: {string: function(core.GameObject): types.DynamicStat} = {
 	["health"] = types.Actor.stats.dynamic.health,
@@ -36,25 +56,9 @@ local argonianTaper = {
 				--fatigue = { min = 100, max = 10, percent = false }, -- this range excludes all values between 10 and 100, meaning the condition is only true if fatigue is greater than 99 or less then 11
 			},
 			equipmentslot = {
-				["Ammunition"] = true,
-				["Amulet"] = false,
-				"Belt",
-				"Boots",
-				"CarriedLeft",
-				"CarriedRight",
-				"Cuirass",
-				"Greaves",
-				"Helmet",
-				"LeftGauntlet",
-				"LeftPauldron",
-				"LeftRing",
-				"Pants",
-				"RightGauntlet",
-				"RightPauldron",
-				"RightRing",
-				"Robe",
-				"Shirt",
-				"Skirt",
+				["Pants"] = false,
+				["Robe"] = false,
+				["Skirt"] = false,
 			}
 		},
 	},
@@ -92,12 +96,18 @@ local function removeCosmetic(effectID: string)
 	anim.removeVfx(this as core.GameObject, effectID)
 end
 
-local function checkEquipmentSlots()
-
+local function checkEquipmentSlots(equipSlots: { string: boolean }): boolean
+	for k, v in pairs(equipSlots) do
+		local equipped = types.Actor.getEquipment(this.object, EQUIP_SLOTS[string.lower(k)])
+		if (equipped == nil and v == true) or (equipped ~= nil and v == false) then
+			return false
+		end
+	end
+	return true
 end
 
-local function checkDynStats(attributes: { string: Range }): boolean
-	for k, range in pairs(attributes) do
+local function checkDynStats(dynStats: { string: Range }): boolean
+	for k, range in pairs(dynStats) do
 		local getStat = DYNAMIC_STATS[k];
 		local dynStat = getStat and getStat(this.object)
 		if dynStat and compareRange(dynStat.current, range, dynStat.base + dynStat.modifier) == false then
@@ -121,19 +131,20 @@ local function checkMWVars(mwvars: { string: Range }): boolean
 	return true
 end
 
-local function checkDead(actorDead: boolean, condDead: boolean): boolean
-	return actorDead == condDead
+local function checkDead(condDead: boolean): boolean
+	return types.Actor.isDead(this.object) == condDead
 end
 
-local function checkWerewolf(actorWerewolf: boolean, condWerewolf: boolean): boolean
-	return actorWerewolf == condWerewolf
+local function checkWerewolf(condWerewolf: boolean): boolean
+	return types.NPC.isWerewolf(this.object) == condWerewolf
 end
 
-local function checkSex(actorSex: boolean, condSex: boolean): boolean
-	return actorSex == condSex
+local function checkSex(condSex: boolean): boolean
+	return types.NPC.record(this.object as types.Actor).isMale == condSex
 end
 
-local function checkRace(actorRace: string, condRace: {string}): boolean
+local function checkRace(condRace: {string}): boolean
+	local actorRace = types.NPC.record(this.object as types.Actor).race
 	for i = 1, #condRace do
 		if actorRace == condRace[i] then
 			return true
@@ -147,48 +158,36 @@ local function checkEffectConditions()
 	local effectID = "taper"
 
 	for i = 1, #conditions do
-		if conditions[i].race ~= nil and checkRace(types.NPC.record(this.object as types.Actor).race, conditions[i].race) == false then
-			--print("race")
-			--print(types.NPC.record(this.object).id)
+		if conditions[i].race ~= nil and checkRace(conditions[i].race) == false then
 			removeCosmetic(effectID)
 			return
 		end
-		if conditions[i].isMale ~= nil and checkSex(types.NPC.record(this.object as types.Actor).isMale, conditions[i].isMale) == false then
-			--print("sex")
-			--print(types.NPC.record(this.object).id)
+		if conditions[i].isMale ~= nil and checkSex(conditions[i].isMale) == false then
 			removeCosmetic(effectID)
 			return
 		end
-		if conditions[i].werewolf ~= nil and checkWerewolf(types.NPC.isWerewolf(this.object), conditions[i].werewolf) == false then
-			--print("werewolf")
-			--print(types.NPC.record(this.object).id)
+		if conditions[i].werewolf ~= nil and checkWerewolf(conditions[i].werewolf) == false then
 			removeCosmetic(effectID)
 			return
 		end
-		if conditions[i].dead ~= nil and checkDead(types.Actor.isDead(this.object), conditions[i].dead) == false then
-			--print("dead")
-			--print(types.NPC.record(this.object).id)
+		if conditions[i].dead ~= nil and checkDead(conditions[i].dead) == false then
 			removeCosmetic(effectID)
 			return
 		end
 		if conditions[i].mwvars ~= nil and checkMWVars(conditions[i].mwvars) == false then
-			--print("mwvars")
-			--print(types.NPC.record(this.object).id)
 			removeCosmetic(effectID)
 			return
 		end
 		if conditions[i].dynStats ~= nil and checkDynStats(conditions[i].dynStats) == false then
-			--print("dynamic stats")
+			removeCosmetic(effectID)
+			return
+		end
+		if conditions[i].equipmentslot ~= nil and checkEquipmentSlots(conditions[i].equipmentslot) == false then
+			--print("equipment slots")
 			--print(types.NPC.record(this.object).id)
 			removeCosmetic(effectID)
 			return
 		end
-		--if conditions[i].equipmentslot ~= nil and checkEquipmentSlots(types.Actor.isDead(this.object), conditions[i].equipmentslot) == false then
-		--	print("equipment slots")
-		--	print(types.NPC.record(this.object).id)
-		--	removeCosmetic(effectID)
-		--	return
-		--end
 	end
 	applyCosmetic(effectID, argonianTaper.node, argonianTaper.mesh)
 end
@@ -200,14 +199,5 @@ return {
 		end,
 		onUpdate = checkEffectConditions,
    	},
-	eventHandlers = {
-		["fetchMWVars"] = function(data: {string: number})
-			MWVars = data
-			for k, v in pairs(data) do
-				if MWVars[k] ~= v then
-					MWVars[k] = v
-				end
-			end
-		end,
-	}
+	eventHandlers = {}
 }
