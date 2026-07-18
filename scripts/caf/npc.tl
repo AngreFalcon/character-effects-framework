@@ -3,6 +3,7 @@ local types = require('openmw.types')
 local anim = require('openmw.animation')
 local this = require('openmw.self')
 local storage = require('openmw.storage')
+local time = require('openmw_aux.time')
 
 local interface Range 
 	min: number
@@ -10,28 +11,6 @@ local interface Range
 	percent: boolean
 	maxValue: number
 end
-
-local EQUIP_SLOTS <const>: { string: number } = {
-	["helmet"] = 0,
-	["cuirass"] = 1,
-	["greaves"] = 2,
-	["leftpauldron"] = 3,
-	["rightpauldron"] = 4,
-	["leftgauntlet"] = 5,
-	["rightgauntlet"] = 6,
-	["boots"] = 7,
-	["shirt"] = 8,
-	["pants"] = 9,
-	["skirt"] = 10,
-	["robe"] = 11,
-	["leftring"] = 12,
-	["rightring"] = 13,
-	["amulet"] = 14,
-	["belt"] = 15,
-	["carriedright"] = 16,
-	["carriedleft"] = 17,
-	["ammunition"] = 18,
-}
 
 local DYNAMIC_STATS <const>: { string: function(core.GameObject): types.DynamicStat } = {
 	["health"] = types.Actor.stats.dynamic.health,
@@ -80,6 +59,28 @@ local SKILLS <const>: { string: function(core.GameObject): types.SkillStat } = {
 	["unarmored"] = types.NPC.stats.skills.unarmored,
 }
 
+local EQUIP_SLOTS <const>: { string: number } = {
+	["helmet"] = 0,
+	["cuirass"] = 1,
+	["greaves"] = 2,
+	["leftpauldron"] = 3,
+	["rightpauldron"] = 4,
+	["leftgauntlet"] = 5,
+	["rightgauntlet"] = 6,
+	["boots"] = 7,
+	["shirt"] = 8,
+	["pants"] = 9,
+	["skirt"] = 10,
+	["robe"] = 11,
+	["leftring"] = 12,
+	["rightring"] = 13,
+	["amulet"] = 14,
+	["belt"] = 15,
+	["carriedright"] = 16,
+	["carriedleft"] = 17,
+	["ammunition"] = 18,
+}
+
 local argonianTaper = {
 	conditions = {
 		{
@@ -111,7 +112,17 @@ local argonianTaper = {
 			classes = { -- complete
 				["thief"] = false, -- any thieves are excluded
 				["assassin"] = true, -- 
-			}
+			},
+			guilds = {
+				["morag tong"] = {
+					rank = { min = 1, max = 10 },
+					reputation = { min = 1, max = 10 },
+				},
+				["mages guild"] = {
+					rank = { min = 1, max = 10 },
+					reputation = { min = 1, max = 10 },
+				},
+			},
 		},
 	},
 	mesh = 'Meshes/bat/shiestaper.nif',
@@ -193,7 +204,7 @@ local function checkDynStats(dynStats: { string: Range }): boolean
 	for k, range in pairs(dynStats) do
 		local getStat = DYNAMIC_STATS[k];
 		local dynStat = getStat and getStat(this.object)
-		if dynStat and compareRange(dynStat.current, range, dynStat.base + dynStat.modifier) == false then
+		if dynStat == nil or compareRange(dynStat.current, range, dynStat.base + dynStat.modifier) == false then
 			return false
 		end
 	end
@@ -204,7 +215,7 @@ local function checkAttributes(attributes: { string: Range }): boolean
 	for k, range in pairs(attributes) do
 		local getAttr = ATTRIBUTES[k]
 		local attr = getAttr and getAttr(this.object)
-		if attr and compareRange(attr.modified, range, attr.base + attr.modifier) == false then
+		if attr == nil or compareRange(attr.modified, range, attr.base + attr.modifier) == false then
 			return false
 		end
 	end
@@ -215,7 +226,7 @@ local function checkSkills(skills: { string: Range }): boolean
 	for k, range in pairs(skills) do
 		local getSkill = SKILLS[k]
 		local skill = getSkill and getSkill(this.object)
-		if skill and compareRange(skill.modified, range, skill.base + skill.modifier) == false then
+		if skill == nil or compareRange(skill.modified, range, skill.base + skill.modifier) == false then
 			return false
 		end
 	end
@@ -234,8 +245,27 @@ end
 
 local function checkClass(classes: { string: boolean }): boolean
 	local class = types.NPC.record(this.object).class
-	if (classes[string.lower(class)] == false) then
-		return false
+	return classes[string.lower(class)]
+end
+
+local function checkGuilds(guilds: { string: { string: Range } }): boolean
+	local actorGuilds: { string: boolean }
+	for _, v in ipairs(types.NPC.getFactions(this.object)) do
+		actorGuilds[v] = true
+	end
+	for k, v in pairs(guilds) do
+		if actorGuilds[k] == nil then
+			return false
+		else
+			local rank = types.NPC.getFactionRank(this.object, k)
+			if v.rank and compareRange(rank, v.rank) == false then
+				return false
+			end
+			local reputation = types.NPC.getFactionReputation(this.object, k)
+			if v.reputation and compareRange(reputation, v.reputation) == false then
+				return false
+			end
+		end
 	end
 	return true
 end
@@ -289,6 +319,10 @@ local function checkEffectConditions()
 			removeCosmetic(effectID)
 			return
 		end
+		if conditions[i].guilds ~= nil and checkGuilds(conditions[i].guilds) == false then
+			removeCosmetic(effectID)
+			return
+		end
 	end
 	applyCosmetic(effectID, argonianTaper.node, argonianTaper.mesh)
 end
@@ -296,9 +330,8 @@ end
 return {
    	engineHandlers = {
       	onActive = function()
-			checkEffectConditions()
+			time.runRepeatedly(checkEffectConditions, 0.2 * time.second, {})
 		end,
-		onUpdate = checkEffectConditions,
    	},
 	eventHandlers = {}
 }
