@@ -12,6 +12,34 @@ local time = require('openmw_aux.time')
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 local DYNAMIC_STATS = {
    ["health"] = types.Actor.stats.dynamic.health,
    ["fatigue"] = types.Actor.stats.dynamic.fatigue,
@@ -81,53 +109,66 @@ local EQUIP_SLOTS = {
    ["ammunition"] = 18,
 }
 
-local argonianTaper = {
-   conditions = {
-      {
-         race = { "argonian" },
-         level = { min = 0, max = 100 },
-         isMale = true,
-         werewolf = false,
-         dead = false,
-         mwvars = {
-            companion = { min = 1, max = 1 },
+local configs = {
+   taper = {
+      conditions = {
+         {
+            charId = { "safl-shies" },
+            race = { "argonian" },
+            level = { min = 0, max = 100 },
+            isMale = true,
+            werewolf = false,
+            dead = false,
+            mwvars = {
+               companion = { min = 1, max = 1 },
 
 
-         },
-         dynStats = {
-            health = { min = 0.5, max = 1, percent = true },
-
-         },
-         attributes = {
-            speed = { min = 0, max = 100 },
-         },
-         skills = {
-            acrobatics = { min = 0, max = 100 },
-         },
-         equipmentslot = {
-            ["pants"] = false,
-            ["robe"] = false,
-            ["skirt"] = false,
-         },
-         classes = {
-            ["thief"] = false,
-            ["assassin"] = true,
-         },
-         guilds = {
-            ["morag tong"] = {
-               rank = { min = 1, max = 10 },
-               reputation = { min = 1, max = 10 },
             },
-            ["mages guild"] = {
-               rank = { min = 1, max = 10 },
-               reputation = { min = 1, max = 10 },
+            dynStats = {
+               health = { min = 0.5, max = 1, percent = true },
+
+            },
+            attributes = {
+               speed = { min = 0, max = 100 },
+            },
+            skills = {
+               acrobatics = { min = 0, max = 100 },
+            },
+            equipmentslot = {
+               ["pants"] = false,
+               ["robe"] = false,
+               ["skirt"] = false,
+            },
+            classes = {
+               ["thief"] = false,
+               ["assassin"] = true,
+            },
+            guilds = {
+               ["morag tong"] = {
+                  rank = { min = 1, max = 10 },
+                  reputation = { min = 1, max = 10 },
+               },
+               ["mages guild"] = {
+                  rank = { min = 1, max = 10 },
+                  reputation = { min = 1, max = 10 },
+               },
             },
          },
       },
+      mesh = 'Meshes/bat/shiestaper.nif',
+      node = "groin",
+      duration = -1,
    },
-   mesh = 'Meshes/bat/shiestaper.nif',
-   node = "groin",
-   duration = -1,
+   sheath = {
+      conditions = {
+         {
+            race = { "khajiit" },
+         },
+      },
+      mesh = 'Meshes/bat/shiestaper.nif',
+      node = "groin",
+      duration = -1,
+   },
 }
 
 local function compareRange(value, r, valueMax)
@@ -157,6 +198,16 @@ end
 
 local function removeCosmetic(effectID)
    anim.removeVfx(this, effectID)
+end
+
+local function checkCharId(condId)
+   local charId = types.NPC.record(this.object).id
+   for i = 1, #condId do
+      if charId == condId[i] then
+         return true
+      end
+   end
+   return false
 end
 
 local function checkRace(condRace)
@@ -271,60 +322,65 @@ local function checkGuilds(guilds)
 end
 
 local function checkEffectConditions()
-   local conditions = argonianTaper.conditions
-   local effectID = "taper"
+   for effectId, effect in pairs(configs) do
+      local conditions = effect.conditions
 
-   for i = 1, #conditions do
-      if conditions[i].race ~= nil and checkRace(conditions[i].race) == false then
-         removeCosmetic(effectID)
-         return
+      for i = 1, #conditions do
+         if conditions[i].charId ~= nil and checkCharId(conditions[i].charId) == false then
+            removeCosmetic(effectId)
+            return
+         end
+         if conditions[i].race ~= nil and checkRace(conditions[i].race) == false then
+            removeCosmetic(effectId)
+            return
+         end
+         if conditions[i].level ~= nil and checkLevel(conditions[i].level) == false then
+            removeCosmetic(effectId)
+            return
+         end
+         if conditions[i].isMale ~= nil and checkSex(conditions[i].isMale) == false then
+            removeCosmetic(effectId)
+            return
+         end
+         if conditions[i].werewolf ~= nil and checkWerewolf(conditions[i].werewolf) == false then
+            removeCosmetic(effectId)
+            return
+         end
+         if conditions[i].dead ~= nil and checkDead(conditions[i].dead) == false then
+            removeCosmetic(effectId)
+            return
+         end
+         if conditions[i].mwvars ~= nil and checkMWVars(conditions[i].mwvars) == false then
+            removeCosmetic(effectId)
+            return
+         end
+         if conditions[i].dynStats ~= nil and checkDynStats(conditions[i].dynStats) == false then
+            removeCosmetic(effectId)
+            return
+         end
+         if conditions[i].attributes ~= nil and checkAttributes(conditions[i].attributes) == false then
+            removeCosmetic(effectId)
+            return
+         end
+         if conditions[i].skills ~= nil and checkSkills(conditions[i].skills) == false then
+            removeCosmetic(effectId)
+            return
+         end
+         if conditions[i].equipmentslot ~= nil and checkEquipmentSlots(conditions[i].equipmentslot) == false then
+            removeCosmetic(effectId)
+            return
+         end
+         if conditions[i].classes ~= nil and checkClass(conditions[i].classes) == false then
+            removeCosmetic(effectId)
+            return
+         end
+         if conditions[i].guilds ~= nil and checkGuilds(conditions[i].guilds) == false then
+            removeCosmetic(effectId)
+            return
+         end
       end
-      if conditions[i].level ~= nil and checkLevel(conditions[i].level) == false then
-         removeCosmetic(effectID)
-         return
-      end
-      if conditions[i].isMale ~= nil and checkSex(conditions[i].isMale) == false then
-         removeCosmetic(effectID)
-         return
-      end
-      if conditions[i].werewolf ~= nil and checkWerewolf(conditions[i].werewolf) == false then
-         removeCosmetic(effectID)
-         return
-      end
-      if conditions[i].dead ~= nil and checkDead(conditions[i].dead) == false then
-         removeCosmetic(effectID)
-         return
-      end
-      if conditions[i].mwvars ~= nil and checkMWVars(conditions[i].mwvars) == false then
-         removeCosmetic(effectID)
-         return
-      end
-      if conditions[i].dynStats ~= nil and checkDynStats(conditions[i].dynStats) == false then
-         removeCosmetic(effectID)
-         return
-      end
-      if conditions[i].attributes ~= nil and checkAttributes(conditions[i].attributes) == false then
-         removeCosmetic(effectID)
-         return
-      end
-      if conditions[i].skills ~= nil and checkSkills(conditions[i].skills) == false then
-         removeCosmetic(effectID)
-         return
-      end
-      if conditions[i].equipmentslot ~= nil and checkEquipmentSlots(conditions[i].equipmentslot) == false then
-         removeCosmetic(effectID)
-         return
-      end
-      if conditions[i].classes ~= nil and checkClass(conditions[i].classes) == false then
-         removeCosmetic(effectID)
-         return
-      end
-      if conditions[i].guilds ~= nil and checkGuilds(conditions[i].guilds) == false then
-         removeCosmetic(effectID)
-         return
-      end
+      applyCosmetic(effectId, effect.node, effect.mesh)
    end
-   applyCosmetic(effectID, argonianTaper.node, argonianTaper.mesh)
 end
 
 return {
