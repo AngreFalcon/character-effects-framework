@@ -41,8 +41,6 @@ local interface Config
 	duration: number
 end
 
-local CONDITIONS <const>: { string: function(any) } = {}
-
 local DYNAMIC_STATS <const>: { string: function(core.GameObject): types.DynamicStat } = {
 	["health"] = types.Actor.stats.dynamic.health,
 	["fatigue"] = types.Actor.stats.dynamic.fatigue,
@@ -212,7 +210,6 @@ local function checkCharId(condId: {string}): boolean
 	end
 	return false
 end
-CONDITIONS["charId"] = checkCharId
 
 local function checkRace(condRace: {string}): boolean
 	local actorRace = types.NPC.record(this.object as types.Actor).race
@@ -223,28 +220,23 @@ local function checkRace(condRace: {string}): boolean
 	end
 	return false
 end
-CONDITIONS["race"] = checkRace
 
 local function checkLevel(level: Range): boolean
 	local actorLevel = types.Actor.stats.level(this.object)
 	return compareRange(actorLevel.current, level) == false
 end
-CONDITIONS["level"] = checkLevel
 
 local function checkSex(condSex: boolean): boolean
 	return types.NPC.record(this.object as types.Actor).isMale == condSex
 end
-CONDITIONS["isMale"] = checkSex
 
 local function checkWerewolf(condWerewolf: boolean): boolean
 	return types.NPC.isWerewolf(this.object) == condWerewolf
 end
-CONDITIONS["werewolf"] = checkWerewolf
 
 local function checkDead(condDead: boolean): boolean
 	return types.Actor.isDead(this.object) == condDead
 end
-CONDITIONS["dead"] = checkDead
 
 local function checkMWVars(mwvars: { string: Range }): boolean
 	local varTable = storage.globalSection(this.object.id)
@@ -259,7 +251,6 @@ local function checkMWVars(mwvars: { string: Range }): boolean
 	end
 	return true
 end
-CONDITIONS["mwvars"] = checkMWVars
 
 local function checkDynStats(dynStats: { string: Range }): boolean
 	for k, range in pairs(dynStats) do
@@ -271,7 +262,6 @@ local function checkDynStats(dynStats: { string: Range }): boolean
 	end
 	return true
 end
-CONDITIONS["dynStats"] = checkDynStats
 
 local function checkAttributes(attributes: { string: Range }): boolean
 	for k, range in pairs(attributes) do
@@ -283,7 +273,6 @@ local function checkAttributes(attributes: { string: Range }): boolean
 	end
 	return true
 end
-CONDITIONS["attributes"] = checkAttributes
 
 local function checkSkills(skills: { string: Range }): boolean
 	for k, range in pairs(skills) do
@@ -295,7 +284,6 @@ local function checkSkills(skills: { string: Range }): boolean
 	end
 	return true
 end
-CONDITIONS["skills"] = checkSkills
 
 local function checkEquipmentSlots(equipSlots: { string: boolean }): boolean
 	for k, v in pairs(equipSlots) do
@@ -306,13 +294,11 @@ local function checkEquipmentSlots(equipSlots: { string: boolean }): boolean
 	end
 	return true
 end
-CONDITIONS["equipmentslot"] = checkEquipmentSlots
 
 local function checkClass(classes: { string: boolean }): boolean
 	local class = types.NPC.record(this.object).class
 	return classes[string.lower(class)]
 end
-CONDITIONS["classes"] = checkClass
 
 local function checkGuilds(guilds: { string: Guild }): boolean
 	local actorGuilds: { string: boolean }
@@ -335,9 +321,8 @@ local function checkGuilds(guilds: { string: Guild }): boolean
 	end
 	return true
 end
-CONDITIONS["guilds"] = checkGuilds
 
---[[local CONDITIONS <const>: { string: function(any) } = {
+local CONDITIONS <const>: { string: function(any) } = {
 	charId = checkCharId,
 	race = checkRace,
 	level = checkLevel,
@@ -351,7 +336,7 @@ CONDITIONS["guilds"] = checkGuilds
 	equipmentslot = checkEquipmentSlots,
 	classes = checkClass,
 	guilds = checkGuilds,
-}--]]
+}
 
 local function checkEffectConditions()
 	for effectId, effect in pairs(configs) do

@@ -41,8 +41,6 @@ local time = require('openmw_aux.time')
 
 
 
-local CONDITIONS = {}
-
 local DYNAMIC_STATS = {
    ["health"] = types.Actor.stats.dynamic.health,
    ["fatigue"] = types.Actor.stats.dynamic.fatigue,
@@ -212,7 +210,6 @@ local function checkCharId(condId)
    end
    return false
 end
-CONDITIONS["charId"] = checkCharId
 
 local function checkRace(condRace)
    local actorRace = types.NPC.record(this.object).race
@@ -223,28 +220,23 @@ local function checkRace(condRace)
    end
    return false
 end
-CONDITIONS["race"] = checkRace
 
 local function checkLevel(level)
    local actorLevel = types.Actor.stats.level(this.object)
    return compareRange(actorLevel.current, level) == false
 end
-CONDITIONS["level"] = checkLevel
 
 local function checkSex(condSex)
    return types.NPC.record(this.object).isMale == condSex
 end
-CONDITIONS["isMale"] = checkSex
 
 local function checkWerewolf(condWerewolf)
    return types.NPC.isWerewolf(this.object) == condWerewolf
 end
-CONDITIONS["werewolf"] = checkWerewolf
 
 local function checkDead(condDead)
    return types.Actor.isDead(this.object) == condDead
 end
-CONDITIONS["dead"] = checkDead
 
 local function checkMWVars(mwvars)
    local varTable = storage.globalSection(this.object.id)
@@ -259,7 +251,6 @@ local function checkMWVars(mwvars)
    end
    return true
 end
-CONDITIONS["mwvars"] = checkMWVars
 
 local function checkDynStats(dynStats)
    for k, range in pairs(dynStats) do
@@ -271,7 +262,6 @@ local function checkDynStats(dynStats)
    end
    return true
 end
-CONDITIONS["dynStats"] = checkDynStats
 
 local function checkAttributes(attributes)
    for k, range in pairs(attributes) do
@@ -283,7 +273,6 @@ local function checkAttributes(attributes)
    end
    return true
 end
-CONDITIONS["attributes"] = checkAttributes
 
 local function checkSkills(skills)
    for k, range in pairs(skills) do
@@ -295,7 +284,6 @@ local function checkSkills(skills)
    end
    return true
 end
-CONDITIONS["skills"] = checkSkills
 
 local function checkEquipmentSlots(equipSlots)
    for k, v in pairs(equipSlots) do
@@ -306,13 +294,11 @@ local function checkEquipmentSlots(equipSlots)
    end
    return true
 end
-CONDITIONS["equipmentslot"] = checkEquipmentSlots
 
 local function checkClass(classes)
    local class = types.NPC.record(this.object).class
    return classes[string.lower(class)]
 end
-CONDITIONS["classes"] = checkClass
 
 local function checkGuilds(guilds)
    local actorGuilds
@@ -335,23 +321,22 @@ local function checkGuilds(guilds)
    end
    return true
 end
-CONDITIONS["guilds"] = checkGuilds
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+local CONDITIONS = {
+   charId = checkCharId,
+   race = checkRace,
+   level = checkLevel,
+   isMale = checkSex,
+   werewolf = checkWerewolf,
+   dead = checkDead,
+   mwvars = checkMWVars,
+   dynStats = checkDynStats,
+   attributes = checkAttributes,
+   skills = checkSkills,
+   equipmentslot = checkEquipmentSlots,
+   classes = checkClass,
+   guilds = checkGuilds,
+}
 
 local function checkEffectConditions()
    for effectId, effect in pairs(configs) do
