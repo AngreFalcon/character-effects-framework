@@ -40,6 +40,9 @@ local time = require('openmw_aux.time')
 
 
 
+
+local CONDITIONS = {}
+
 local DYNAMIC_STATS = {
    ["health"] = types.Actor.stats.dynamic.health,
    ["fatigue"] = types.Actor.stats.dynamic.fatigue,
@@ -113,46 +116,46 @@ local configs = {
    taper = {
       conditions = {
          {
-            charId = { "safl-shies" },
+
             race = { "argonian" },
-            level = { min = 0, max = 100 },
+
             isMale = true,
-            werewolf = false,
-            dead = false,
-            mwvars = {
-               companion = { min = 1, max = 1 },
 
 
-            },
-            dynStats = {
-               health = { min = 0.5, max = 1, percent = true },
 
-            },
-            attributes = {
-               speed = { min = 0, max = 100 },
-            },
-            skills = {
-               acrobatics = { min = 0, max = 100 },
-            },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             equipmentslot = {
                ["pants"] = false,
                ["robe"] = false,
                ["skirt"] = false,
             },
-            classes = {
-               ["thief"] = false,
-               ["assassin"] = true,
-            },
-            guilds = {
-               ["morag tong"] = {
-                  rank = { min = 1, max = 10 },
-                  reputation = { min = 1, max = 10 },
-               },
-               ["mages guild"] = {
-                  rank = { min = 1, max = 10 },
-                  reputation = { min = 1, max = 10 },
-               },
-            },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
          },
       },
       mesh = 'Meshes/bat/shiestaper.nif',
@@ -209,6 +212,7 @@ local function checkCharId(condId)
    end
    return false
 end
+CONDITIONS["charId"] = checkCharId
 
 local function checkRace(condRace)
    local actorRace = types.NPC.record(this.object).race
@@ -219,23 +223,28 @@ local function checkRace(condRace)
    end
    return false
 end
+CONDITIONS["race"] = checkRace
 
 local function checkLevel(level)
    local actorLevel = types.Actor.stats.level(this.object)
    return compareRange(actorLevel.current, level) == false
 end
+CONDITIONS["level"] = checkLevel
 
 local function checkSex(condSex)
    return types.NPC.record(this.object).isMale == condSex
 end
+CONDITIONS["isMale"] = checkSex
 
 local function checkWerewolf(condWerewolf)
    return types.NPC.isWerewolf(this.object) == condWerewolf
 end
+CONDITIONS["werewolf"] = checkWerewolf
 
 local function checkDead(condDead)
    return types.Actor.isDead(this.object) == condDead
 end
+CONDITIONS["dead"] = checkDead
 
 local function checkMWVars(mwvars)
    local varTable = storage.globalSection(this.object.id)
@@ -250,6 +259,7 @@ local function checkMWVars(mwvars)
    end
    return true
 end
+CONDITIONS["mwvars"] = checkMWVars
 
 local function checkDynStats(dynStats)
    for k, range in pairs(dynStats) do
@@ -261,6 +271,7 @@ local function checkDynStats(dynStats)
    end
    return true
 end
+CONDITIONS["dynStats"] = checkDynStats
 
 local function checkAttributes(attributes)
    for k, range in pairs(attributes) do
@@ -272,6 +283,7 @@ local function checkAttributes(attributes)
    end
    return true
 end
+CONDITIONS["attributes"] = checkAttributes
 
 local function checkSkills(skills)
    for k, range in pairs(skills) do
@@ -283,6 +295,7 @@ local function checkSkills(skills)
    end
    return true
 end
+CONDITIONS["skills"] = checkSkills
 
 local function checkEquipmentSlots(equipSlots)
    for k, v in pairs(equipSlots) do
@@ -293,11 +306,13 @@ local function checkEquipmentSlots(equipSlots)
    end
    return true
 end
+CONDITIONS["equipmentslot"] = checkEquipmentSlots
 
 local function checkClass(classes)
    local class = types.NPC.record(this.object).class
    return classes[string.lower(class)]
 end
+CONDITIONS["classes"] = checkClass
 
 local function checkGuilds(guilds)
    local actorGuilds
@@ -320,63 +335,34 @@ local function checkGuilds(guilds)
    end
    return true
 end
+CONDITIONS["guilds"] = checkGuilds
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 local function checkEffectConditions()
    for effectId, effect in pairs(configs) do
       local conditions = effect.conditions
-
       for i = 1, #conditions do
-         if conditions[i].charId ~= nil and checkCharId(conditions[i].charId) == false then
-            removeCosmetic(effectId)
-            return
-         end
-         if conditions[i].race ~= nil and checkRace(conditions[i].race) == false then
-            removeCosmetic(effectId)
-            return
-         end
-         if conditions[i].level ~= nil and checkLevel(conditions[i].level) == false then
-            removeCosmetic(effectId)
-            return
-         end
-         if conditions[i].isMale ~= nil and checkSex(conditions[i].isMale) == false then
-            removeCosmetic(effectId)
-            return
-         end
-         if conditions[i].werewolf ~= nil and checkWerewolf(conditions[i].werewolf) == false then
-            removeCosmetic(effectId)
-            return
-         end
-         if conditions[i].dead ~= nil and checkDead(conditions[i].dead) == false then
-            removeCosmetic(effectId)
-            return
-         end
-         if conditions[i].mwvars ~= nil and checkMWVars(conditions[i].mwvars) == false then
-            removeCosmetic(effectId)
-            return
-         end
-         if conditions[i].dynStats ~= nil and checkDynStats(conditions[i].dynStats) == false then
-            removeCosmetic(effectId)
-            return
-         end
-         if conditions[i].attributes ~= nil and checkAttributes(conditions[i].attributes) == false then
-            removeCosmetic(effectId)
-            return
-         end
-         if conditions[i].skills ~= nil and checkSkills(conditions[i].skills) == false then
-            removeCosmetic(effectId)
-            return
-         end
-         if conditions[i].equipmentslot ~= nil and checkEquipmentSlots(conditions[i].equipmentslot) == false then
-            removeCosmetic(effectId)
-            return
-         end
-         if conditions[i].classes ~= nil and checkClass(conditions[i].classes) == false then
-            removeCosmetic(effectId)
-            return
-         end
-         if conditions[i].guilds ~= nil and checkGuilds(conditions[i].guilds) == false then
-            removeCosmetic(effectId)
-            return
+         for k, v in pairs(CONDITIONS) do
+            local condition = (conditions[i])[k]
+            if condition ~= nil and v(condition) == false then
+               removeCosmetic(effectId)
+               return
+            end
          end
       end
       applyCosmetic(effectId, effect.node, effect.mesh)

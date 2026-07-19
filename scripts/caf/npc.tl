@@ -4,6 +4,7 @@ local anim = require('openmw.animation')
 local this = require('openmw.self')
 local storage = require('openmw.storage')
 local time = require('openmw_aux.time')
+--local configFiles = require('scripts.caf.load')
 
 local interface Range 
 	min: number
@@ -39,6 +40,8 @@ local interface Config
 	node: string
 	duration: number
 end
+
+local CONDITIONS <const>: { string: function(any) } = {}
 
 local DYNAMIC_STATS <const>: { string: function(core.GameObject): types.DynamicStat } = {
 	["health"] = types.Actor.stats.dynamic.health,
@@ -113,33 +116,33 @@ local configs: { string: Config } = {
 	taper: Config = {
 		conditions: { Condition } = {
 			{
-				charId: { string } = { "safl-shies" }, -- implemented
+				--charId: { string } = { "safl-shies" }, -- implemented
 				race: { string } = { "argonian" }, -- implemented
-				level: Range = { min = 0, max = 100 }, -- implemented
+				--level: Range = { min = 0, max = 100 }, -- implemented
 				isMale: boolean = true, -- implemented
-				werewolf: boolean = false, -- implemented
+				--[[werewolf: boolean = false, -- implemented
 				dead: boolean = false, -- implemented
 				mwvars: { string: Range } = { -- implemented
 					companion = { min = 1, max = 1, },
-					--arousal = { min = 100, max = 100, }, -- this range is only true if arousal is 100 exactly
-					--stinky = { min = 0, max = 100, }, -- this range is only true is stinky is between 0 and 100 (inclusive)
+					arousal = { min = 100, max = 100, }, -- this range is only true if arousal is 100 exactly
+					stinky = { min = 0, max = 100, }, -- this range is only true is stinky is between 0 and 100 (inclusive)
 				},
 				dynStats: { string: Range } = { -- implemented
 					health = { min = 0.5, max = 1, percent = true },
-					--fatigue = { min = 100, max = 10, percent = false }, -- this range excludes all values between 10 and 100, meaning the condition is only true if fatigue is greater than 99 or less then 11
+					fatigue = { min = 100, max = 10, percent = false }, -- this range excludes all values between 10 and 100, meaning the condition is only true if fatigue is greater than 99 or less then 11
 				},
 				attributes: { string: Range } = { -- implemented
 					speed = { min = 0, max = 100  },
 				},
 				skills: { string: Range } = { -- implemented
 					acrobatics = { min = 0, max = 100  },
-				},
+				},--]]
 				equipmentslot: { string: boolean } = { -- implemented
 					["pants"] = false,
 					["robe"] = false,
 					["skirt"] = false,
 				},
-				classes: { string: boolean } = { -- implemented
+				--[[classes: { string: boolean } = { -- implemented
 					["thief"] = false, -- any thieves are excluded
 					["assassin"] = true, -- 
 				},
@@ -152,7 +155,7 @@ local configs: { string: Config } = {
 						rank = { min = 1, max = 10 },
 						reputation = { min = 1, max = 10 },
 					},
-				},
+				},--]]
 			},
 		},
 		mesh: string = 'Meshes/bat/shiestaper.nif',
@@ -209,6 +212,7 @@ local function checkCharId(condId: {string}): boolean
 	end
 	return false
 end
+CONDITIONS["charId"] = checkCharId
 
 local function checkRace(condRace: {string}): boolean
 	local actorRace = types.NPC.record(this.object as types.Actor).race
@@ -219,23 +223,28 @@ local function checkRace(condRace: {string}): boolean
 	end
 	return false
 end
+CONDITIONS["race"] = checkRace
 
 local function checkLevel(level: Range): boolean
 	local actorLevel = types.Actor.stats.level(this.object)
 	return compareRange(actorLevel.current, level) == false
 end
+CONDITIONS["level"] = checkLevel
 
 local function checkSex(condSex: boolean): boolean
 	return types.NPC.record(this.object as types.Actor).isMale == condSex
 end
+CONDITIONS["isMale"] = checkSex
 
 local function checkWerewolf(condWerewolf: boolean): boolean
 	return types.NPC.isWerewolf(this.object) == condWerewolf
 end
+CONDITIONS["werewolf"] = checkWerewolf
 
 local function checkDead(condDead: boolean): boolean
 	return types.Actor.isDead(this.object) == condDead
 end
+CONDITIONS["dead"] = checkDead
 
 local function checkMWVars(mwvars: { string: Range }): boolean
 	local varTable = storage.globalSection(this.object.id)
@@ -250,6 +259,7 @@ local function checkMWVars(mwvars: { string: Range }): boolean
 	end
 	return true
 end
+CONDITIONS["mwvars"] = checkMWVars
 
 local function checkDynStats(dynStats: { string: Range }): boolean
 	for k, range in pairs(dynStats) do
@@ -261,6 +271,7 @@ local function checkDynStats(dynStats: { string: Range }): boolean
 	end
 	return true
 end
+CONDITIONS["dynStats"] = checkDynStats
 
 local function checkAttributes(attributes: { string: Range }): boolean
 	for k, range in pairs(attributes) do
@@ -272,6 +283,7 @@ local function checkAttributes(attributes: { string: Range }): boolean
 	end
 	return true
 end
+CONDITIONS["attributes"] = checkAttributes
 
 local function checkSkills(skills: { string: Range }): boolean
 	for k, range in pairs(skills) do
@@ -283,6 +295,7 @@ local function checkSkills(skills: { string: Range }): boolean
 	end
 	return true
 end
+CONDITIONS["skills"] = checkSkills
 
 local function checkEquipmentSlots(equipSlots: { string: boolean }): boolean
 	for k, v in pairs(equipSlots) do
@@ -293,11 +306,13 @@ local function checkEquipmentSlots(equipSlots: { string: boolean }): boolean
 	end
 	return true
 end
+CONDITIONS["equipmentslot"] = checkEquipmentSlots
 
 local function checkClass(classes: { string: boolean }): boolean
 	local class = types.NPC.record(this.object).class
 	return classes[string.lower(class)]
 end
+CONDITIONS["classes"] = checkClass
 
 local function checkGuilds(guilds: { string: Guild }): boolean
 	local actorGuilds: { string: boolean }
@@ -320,63 +335,34 @@ local function checkGuilds(guilds: { string: Guild }): boolean
 	end
 	return true
 end
+CONDITIONS["guilds"] = checkGuilds
+
+--[[local CONDITIONS <const>: { string: function(any) } = {
+	charId = checkCharId,
+	race = checkRace,
+	level = checkLevel,
+	isMale = checkSex,
+	werewolf = checkWerewolf,
+	dead = checkDead,
+	mwvars = checkMWVars,
+	dynStats = checkDynStats,
+	attributes = checkAttributes,
+	skills = checkSkills,
+	equipmentslot = checkEquipmentSlots,
+	classes = checkClass,
+	guilds = checkGuilds,
+}--]]
 
 local function checkEffectConditions()
 	for effectId, effect in pairs(configs) do
 		local conditions = effect.conditions
-
 		for i = 1, #conditions do
-			if conditions[i].charId ~= nil and checkCharId(conditions[i].charId) == false then
-				removeCosmetic(effectId)
-				return
-			end
-			if conditions[i].race ~= nil and checkRace(conditions[i].race) == false then
-				removeCosmetic(effectId)
-				return
-			end
-			if conditions[i].level ~= nil and checkLevel(conditions[i].level) == false then
-				removeCosmetic(effectId)
-				return
-			end
-			if conditions[i].isMale ~= nil and checkSex(conditions[i].isMale) == false then
-				removeCosmetic(effectId)
-				return
-			end
-			if conditions[i].werewolf ~= nil and checkWerewolf(conditions[i].werewolf) == false then
-				removeCosmetic(effectId)
-				return
-			end
-			if conditions[i].dead ~= nil and checkDead(conditions[i].dead) == false then
-				removeCosmetic(effectId)
-				return
-			end
-			if conditions[i].mwvars ~= nil and checkMWVars(conditions[i].mwvars) == false then
-				removeCosmetic(effectId)
-				return
-			end
-			if conditions[i].dynStats ~= nil and checkDynStats(conditions[i].dynStats) == false then
-				removeCosmetic(effectId)
-				return
-			end
-			if conditions[i].attributes ~= nil and checkAttributes(conditions[i].attributes) == false then
-				removeCosmetic(effectId)
-				return
-			end
-			if conditions[i].skills ~= nil and checkSkills(conditions[i].skills) == false then
-				removeCosmetic(effectId)
-				return
-			end
-			if conditions[i].equipmentslot ~= nil and checkEquipmentSlots(conditions[i].equipmentslot) == false then
-				removeCosmetic(effectId)
-				return
-			end
-			if conditions[i].classes ~= nil and checkClass(conditions[i].classes) == false then
-				removeCosmetic(effectId)
-				return
-			end
-			if conditions[i].guilds ~= nil and checkGuilds(conditions[i].guilds) == false then
-				removeCosmetic(effectId)
-				return
+			for k, v in pairs(CONDITIONS) do
+				local condition = (conditions[i] as {string: any})[k]
+				if condition ~= nil and v(condition) == false then
+					removeCosmetic(effectId)
+					return
+				end
 			end
 		end
 		applyCosmetic(effectId, effect.node, effect.mesh)
