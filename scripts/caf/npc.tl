@@ -156,11 +156,11 @@ local configs: { string: Config } = {
 				},--]]
 			},
 		},
-		mesh: string = 'Meshes/bat/shiestaper.nif',
+		mesh: string = 'Meshes/bat/taper.nif',
 		node: string = "groin",
 		duration: number = -1,
 	},
-	sheath: Config = {
+	--[[sheath: Config = {
 		conditions = {
 			{
 				race = { "khajiit" },
@@ -169,7 +169,7 @@ local configs: { string: Config } = {
 		mesh = 'Meshes/bat/shiestaper.nif',
 		node = "groin",
 		duration = -1,
-	},
+	},--]]
 }
 
 local function compareRange(value: number, r: Range, valueMax?: number): boolean
@@ -320,6 +320,10 @@ local function checkGuilds(guilds: { string: Guild }): boolean
 		end
 	end
 	return true
+end
+
+local function checkEffects(effects: string): boolean
+	return 
 end
 
 local CONDITIONS <const>: { string: function(any) } = {

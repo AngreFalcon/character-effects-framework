@@ -156,20 +156,20 @@ local configs = {
 
          },
       },
-      mesh = 'Meshes/bat/shiestaper.nif',
+      mesh = 'Meshes/bat/taper.nif',
       node = "groin",
       duration = -1,
    },
-   sheath = {
-      conditions = {
-         {
-            race = { "khajiit" },
-         },
-      },
-      mesh = 'Meshes/bat/shiestaper.nif',
-      node = "groin",
-      duration = -1,
-   },
+
+
+
+
+
+
+
+
+
+
 }
 
 local function compareRange(value, r, valueMax)
@@ -320,6 +320,10 @@ local function checkGuilds(guilds)
       end
    end
    return true
+end
+
+local function checkEffects(effects)
+   return
 end
 
 local CONDITIONS = {
