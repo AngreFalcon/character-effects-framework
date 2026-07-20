@@ -44,7 +44,6 @@ local interface Config
 	conditions: { Condition }
 	mesh: string
 	node: string
-	duration: number
 end
 
 local DYNAMIC_STATS <const>: { string: function(core.GameObject): types.DynamicStat } = {

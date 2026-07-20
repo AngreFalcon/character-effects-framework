@@ -46,7 +46,6 @@ local configData = {}
 
 
 
-
 local DYNAMIC_STATS = {
    ["health"] = types.Actor.stats.dynamic.health,
    ["fatigue"] = types.Actor.stats.dynamic.fatigue,
