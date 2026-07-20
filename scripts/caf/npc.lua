@@ -6,8 +6,10 @@ local storage = require('openmw.storage')
 local time = require('openmw_aux.time')
 local nearby = require('openmw.nearby')
 
-local elapsedTime = core.getRealTime()
+local realTime = core.getRealTime()
+local elapsedTime = 0
 local timerDelay = (0.1 * time.second)
+local configData = {}
 
 
 
@@ -144,7 +146,8 @@ local function removeCosmetic(effectID)
 end
 
 local CONDITIONS = {
-   charId = function(condId)
+   { "charId",
+   function(condId)
       local charId = types.NPC.record(this.object).id
       for i = 1, #condId do
          if charId == condId[i] then
@@ -153,8 +156,10 @@ local CONDITIONS = {
       end
       return false
    end,
+   },
 
-   race = function(race)
+   { "race",
+   function(race)
       local actorRace = types.NPC.record(this.object).race
       for i = 1, #race do
          if actorRace == race[i] then
@@ -163,25 +168,35 @@ local CONDITIONS = {
       end
       return false
    end,
+   },
 
-   level = function(level)
+   { "level",
+   function(level)
       local actorLevel = types.Actor.stats.level(this.object)
       return compareRange(actorLevel.current, level)
    end,
+   },
 
-   isMale = function(isMale)
+   { "isMale",
+   function(isMale)
       return types.NPC.record(this.object).isMale == isMale
    end,
+   },
 
-   isWerewolf = function(isWerewolf)
+   { "isWerewolf",
+   function(isWerewolf)
       return types.NPC.isWerewolf(this.object) == isWerewolf
    end,
+   },
 
-   isDead = function(isDead)
+   { "isDead",
+   function(isDead)
       return types.Actor.isDead(this.object) == isDead
    end,
+   },
 
-   mwvars = function(mwvars)
+   { "mwvars",
+   function(mwvars)
       local varTable = storage.globalSection(this.object.id)
       if varTable == nil then
          return false
@@ -194,8 +209,10 @@ local CONDITIONS = {
       end
       return true
    end,
+   },
 
-   dynStats = function(dynStats)
+   { "dynStats",
+   function(dynStats)
       for k, range in pairs(dynStats) do
          local getStat = DYNAMIC_STATS[k];
          local dynStat = getStat and getStat(this.object)
@@ -205,8 +222,10 @@ local CONDITIONS = {
       end
       return true
    end,
+   },
 
-   attributes = function(attributes)
+   { "attributes",
+   function(attributes)
       for k, range in pairs(attributes) do
          local getAttr = ATTRIBUTES[k]
          local attr = getAttr and getAttr(this.object)
@@ -216,8 +235,10 @@ local CONDITIONS = {
       end
       return true
    end,
+   },
 
-   skills = function(skills)
+   { "skills",
+   function(skills)
       for k, range in pairs(skills) do
          local getSkill = SKILLS[k]
          local skill = getSkill and getSkill(this.object)
@@ -227,8 +248,10 @@ local CONDITIONS = {
       end
       return true
    end,
+   },
 
-   equipment = function(equipment)
+   { "equipment",
+   function(equipment)
       for k, v in pairs(equipment) do
          local equipped = types.Actor.getEquipment(this.object, EQUIP_SLOTS[string.lower(k)])
          if (equipped == nil and v == true) or (equipped ~= nil and v == false) then
@@ -237,13 +260,17 @@ local CONDITIONS = {
       end
       return true
    end,
+   },
 
-   classes = function(classes)
+   { "classes",
+   function(classes)
       local class = types.NPC.record(this.object).class
       return classes[string.lower(class)]
    end,
+   },
 
-   guilds = function(guilds)
+   { "guilds",
+   function(guilds)
       local actorGuilds = {}
       for _, v in ipairs(types.NPC.getFactions(this.object)) do
          actorGuilds[v] = true
@@ -264,17 +291,17 @@ local CONDITIONS = {
       end
       return true
    end,
+   },
 }
 
 local function checkEffectConditions()
-   local configData = storage.globalSection("CAF_ConfigData"):asTable()
    for _, contents in pairs(configData) do
       for effectId, effect in pairs(contents) do
          local conditions = effect.conditions
-         for i = 1, #conditions do
-            for k, v in pairs(CONDITIONS) do
-               local condition = (conditions[i])[k]
-               if condition ~= nil and v(condition) == false then
+         for _, v1 in ipairs(conditions) do
+            for _, v2 in ipairs(CONDITIONS) do
+               local condition = (v1)[v2[1]]
+               if condition ~= nil and v2[2](condition) == false then
                   removeCosmetic(effectId)
                   return
                end
@@ -296,15 +323,18 @@ end
 
 return {
    engineHandlers = {
+      onInit = function()
+         configData = storage.globalSection("CAF_ConfigData"):asTable()
+      end,
       onActive = function()
          time.runRepeatedly(checkNearby, timerDelay, {})
       end,
       onUpdate = function()
-         local realTime = core.getRealTime()
          if core.isWorldPaused() and ((realTime - elapsedTime) >= (timerDelay)) then
             checkNearby()
             elapsedTime = realTime
          end
+         realTime = core.getRealTime()
       end,
    },
 }

@@ -20,13 +20,11 @@ end
 local function loadConfigFiles()
    local configData = {}
    local configPath = "/scripts/caf/configs/"
-   local configExtension = ".json"
    for fileName in vfs.pathsWithPrefix(configPath) do
       local file = vfs.open(fileName)
       if file ~= nil then
-         print(file.fileName)
-         local configId = string.match(file.fileName, "([^/\\]+)%..+$")
 
+         local configId = string.match(file.fileName, "([^/\\]+)%..+$")
          configData[configId] = file:read("*all")
       end
    end

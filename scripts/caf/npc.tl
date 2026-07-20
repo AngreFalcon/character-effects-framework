@@ -6,8 +6,10 @@ local storage = require('openmw.storage')
 local time = require('openmw_aux.time')
 local nearby = require('openmw.nearby')
 
-local elapsedTime: number = core.getRealTime()
+local realTime: number = core.getRealTime()
+local elapsedTime: number = 0
 local timerDelay <const>: number = (0.1 * time.second)
+local configData = {}
 
 local interface Range 
 	min: number
@@ -143,138 +145,163 @@ local function removeCosmetic(effectID: string)
 	anim.removeVfx(this as core.GameObject, effectID)
 end
 
-local CONDITIONS <const>: { string: function(any) } = {
-	charId = function(condId: {string}): boolean
-		local charId = types.NPC.record(this.object as types.Actor).id
-		for i = 1, #condId do
-			if charId == condId[i] then
-				return true
+local CONDITIONS <const>: { { string, function(any) } } = {
+	{ "charId",
+		function(condId: {string}): boolean
+			local charId = types.NPC.record(this.object as types.Actor).id
+			for i = 1, #condId do
+				if charId == condId[i] then
+					return true
+				end
 			end
-		end
-		return false
-	end,
-
-	race = function(race: {string}): boolean
-		local actorRace = types.NPC.record(this.object as types.Actor).race
-		for i = 1, #race do
-			if actorRace == race[i] then
-				return true
-			end
-		end
-		return false
-	end,
-
-	level = function(level: Range): boolean
-		local actorLevel = types.Actor.stats.level(this.object)
-		return compareRange(actorLevel.current, level)
-	end,
-
-	isMale = function(isMale: boolean): boolean
-		return types.NPC.record(this.object as types.Actor).isMale == isMale
-	end,
-
-	isWerewolf = function(isWerewolf: boolean): boolean
-		return types.NPC.isWerewolf(this.object) == isWerewolf
-	end,
-
-	isDead = function(isDead: boolean): boolean
-		return types.Actor.isDead(this.object) == isDead
-	end,
-
-	mwvars = function(mwvars: { string: Range }): boolean
-		local varTable = storage.globalSection(this.object.id)
-		if varTable == nil then
 			return false
 		end
-		for k, range in pairs(mwvars) do
-			local value = varTable:get(k)
-			if value == nil or compareRange(value as integer, range, range.maxValue) == false then
-				return false
-			end
-		end
-		return true
-	end,
+	},
 
-	dynStats = function(dynStats: { string: Range }): boolean
-		for k, range in pairs(dynStats) do
-			local getStat = DYNAMIC_STATS[k];
-			local dynStat = getStat and getStat(this.object)
-			if dynStat == nil or compareRange(dynStat.current, range, dynStat.base + dynStat.modifier) == false then
-				return false
-			end
-		end
-		return true
-	end,
-
-	attributes = function(attributes: { string: Range }): boolean
-		for k, range in pairs(attributes) do
-			local getAttr = ATTRIBUTES[k]
-			local attr = getAttr and getAttr(this.object)
-			if attr == nil or compareRange(attr.modified, range, attr.base + attr.modifier) == false then
-				return false
-			end
-		end
-		return true
-	end,
-
-	skills = function(skills: { string: Range }): boolean
-		for k, range in pairs(skills) do
-			local getSkill = SKILLS[k]
-			local skill = getSkill and getSkill(this.object)
-			if skill == nil or compareRange(skill.modified, range, skill.base + skill.modifier) == false then
-				return false
-			end
-		end
-		return true
-	end,
-
-	equipment = function(equipment: { string: boolean }): boolean
-		for k, v in pairs(equipment) do
-			local equipped = types.Actor.getEquipment(this.object, EQUIP_SLOTS[string.lower(k)])
-			if (equipped == nil and v == true) or (equipped ~= nil and v == false) then
-				return false
-			end
-		end
-		return true
-	end,
-
-	classes = function(classes: { string: boolean }): boolean
-		local class = types.NPC.record(this.object).class
-		return classes[string.lower(class)]
-	end,
-
-	guilds = function(guilds: { string: Guild }): boolean
-		local actorGuilds: { string: boolean } = {}
-		for _, v in ipairs(types.NPC.getFactions(this.object)) do
-			actorGuilds[v] = true
-		end
-		for k, v in pairs(guilds) do
-			if actorGuilds[k] == nil then
-				return false
-			else
-				local rank = types.NPC.getFactionRank(this.object, k)
-				if v.rank and compareRange(rank, v.rank) == false then
-					return false
+	{ "race",
+		function(race: {string}): boolean
+			local actorRace = types.NPC.record(this.object as types.Actor).race
+			for i = 1, #race do
+				if actorRace == race[i] then
+					return true
 				end
-				local reputation = types.NPC.getFactionReputation(this.object, k)
-				if v.reputation and compareRange(reputation, v.reputation) == false then
+			end
+			return false
+		end
+	},
+
+	{ "level", 
+		function(level: Range): boolean
+			local actorLevel = types.Actor.stats.level(this.object)
+			return compareRange(actorLevel.current, level)
+		end
+	},
+
+	{ "isMale",
+		function(isMale: boolean): boolean
+			return types.NPC.record(this.object as types.Actor).isMale == isMale
+		end
+	},
+
+	{ "isWerewolf",
+		function(isWerewolf: boolean): boolean
+			return types.NPC.isWerewolf(this.object) == isWerewolf
+		end
+	},
+
+	{ "isDead",
+		function(isDead: boolean): boolean
+			return types.Actor.isDead(this.object) == isDead
+		end
+	},
+
+	{ "mwvars",
+		function(mwvars: { string: Range }): boolean
+			local varTable = storage.globalSection(this.object.id)
+			if varTable == nil then
+				return false
+			end
+			for k, range in pairs(mwvars) do
+				local value = varTable:get(k)
+				if value == nil or compareRange(value as integer, range, range.maxValue) == false then
 					return false
 				end
 			end
+			return true
 		end
-		return true
-	end,
+	},
+
+	{ "dynStats",
+		function(dynStats: { string: Range }): boolean
+			for k, range in pairs(dynStats) do
+				local getStat = DYNAMIC_STATS[k];
+				local dynStat = getStat and getStat(this.object)
+				if dynStat == nil or compareRange(dynStat.current, range, dynStat.base + dynStat.modifier) == false then
+					return false
+				end
+			end
+			return true
+		end
+	},
+
+	{ "attributes",
+		function(attributes: { string: Range }): boolean
+			for k, range in pairs(attributes) do
+				local getAttr = ATTRIBUTES[k]
+				local attr = getAttr and getAttr(this.object)
+				if attr == nil or compareRange(attr.modified, range, attr.base + attr.modifier) == false then
+					return false
+				end
+			end
+			return true
+		end
+	},
+
+	{ "skills",
+		function(skills: { string: Range }): boolean
+			for k, range in pairs(skills) do
+				local getSkill = SKILLS[k]
+				local skill = getSkill and getSkill(this.object)
+				if skill == nil or compareRange(skill.modified, range, skill.base + skill.modifier) == false then
+					return false
+				end
+			end
+			return true
+		end
+	},
+
+	{ "equipment",
+		function(equipment: { string: boolean }): boolean
+			for k, v in pairs(equipment) do
+				local equipped = types.Actor.getEquipment(this.object, EQUIP_SLOTS[string.lower(k)])
+				if (equipped == nil and v == true) or (equipped ~= nil and v == false) then
+					return false
+				end
+			end
+			return true
+		end
+	},
+
+	{ "classes",
+		function(classes: { string: boolean }): boolean
+			local class = types.NPC.record(this.object).class
+			return classes[string.lower(class)]
+		end
+	},
+
+	{ "guilds",
+		function(guilds: { string: Guild }): boolean
+			local actorGuilds: { string: boolean } = {}
+			for _, v in ipairs(types.NPC.getFactions(this.object)) do
+				actorGuilds[v] = true
+			end
+			for k, v in pairs(guilds) do
+				if actorGuilds[k] == nil then
+					return false
+				else
+					local rank = types.NPC.getFactionRank(this.object, k)
+					if v.rank and compareRange(rank, v.rank) == false then
+						return false
+					end
+					local reputation = types.NPC.getFactionReputation(this.object, k)
+					if v.reputation and compareRange(reputation, v.reputation) == false then
+						return false
+					end
+				end
+			end
+			return true
+		end
+	},
 }
 
 local function checkEffectConditions()
-	local configData = storage.globalSection("CAF_ConfigData"):asTable()
 	for _, contents in pairs(configData as { string: any }) do
 		for effectId, effect in pairs(contents as { string: Config }) do
 			local conditions = effect.conditions
-			for i = 1, #conditions do
-				for k, v in pairs(CONDITIONS) do
-					local condition = (conditions[i] as { string: any })[k]
-					if condition ~= nil and v(condition) == false then
+			for _, v1 in ipairs(conditions) do
+				for _, v2 in ipairs(CONDITIONS) do
+					local condition = (v1 as { string: any })[v2[1]]
+					if condition ~= nil and v2[2](condition) == false then
 						removeCosmetic(effectId)
 						return
 					end
@@ -296,15 +323,18 @@ end
 
 return {
    	engineHandlers = {
+		onInit = function()
+			configData = storage.globalSection("CAF_ConfigData"):asTable()
+		end,
       	onActive = function()
 			time.runRepeatedly(checkNearby, timerDelay, {})
 		end,
 		onUpdate = function()
-			local realTime = core.getRealTime()
 			if core.isWorldPaused() and((realTime - elapsedTime) >= (timerDelay)) then
 				checkNearby()
 				elapsedTime = realTime
 			end
+			realTime = core.getRealTime()
 		end,
    	},
 }
