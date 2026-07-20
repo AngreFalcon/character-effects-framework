@@ -10,6 +10,7 @@ local realTime: number = core.getRealTime()
 local elapsedTime: number = 0
 local timerDelay <const>: number = (0.1 * time.second)
 local configData = {}
+local mwvarsTable: storage.StorageSection
 
 local interface Range 
 	min: number
@@ -196,12 +197,11 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 
 	{ "mwvars",
 		function(mwvars: { string: Range }): boolean
-			local varTable = storage.globalSection(this.object.id)
-			if varTable == nil then
+			if mwvarsTable == nil then
 				return false
 			end
 			for k, range in pairs(mwvars) do
-				local value = varTable:get(k)
+				local value = mwvarsTable:get(k)
 				if value == nil or compareRange(value as integer, range, range.maxValue) == false then
 					return false
 				end
@@ -324,6 +324,7 @@ return {
    	engineHandlers = {
 		onInit = function()
 			configData = storage.globalSection("CAF_ConfigData"):asTable()
+			mwvarsTable = storage.globalSection(this.object.id)
 		end,
       	onActive = function()
 			time.runRepeatedly(checkNearby, timerDelay, {})

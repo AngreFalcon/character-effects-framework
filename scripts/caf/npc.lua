@@ -10,6 +10,7 @@ local realTime = core.getRealTime()
 local elapsedTime = 0
 local timerDelay = (0.1 * time.second)
 local configData = {}
+local mwvarsTable
 
 
 
@@ -196,12 +197,11 @@ local CONDITIONS = {
 
    { "mwvars",
    function(mwvars)
-      local varTable = storage.globalSection(this.object.id)
-      if varTable == nil then
+      if mwvarsTable == nil then
          return false
       end
       for k, range in pairs(mwvars) do
-         local value = varTable:get(k)
+         local value = mwvarsTable:get(k)
          if value == nil or compareRange(value, range, range.maxValue) == false then
             return false
          end
@@ -324,6 +324,7 @@ return {
    engineHandlers = {
       onInit = function()
          configData = storage.globalSection("CAF_ConfigData"):asTable()
+         mwvarsTable = storage.globalSection(this.object.id)
       end,
       onActive = function()
          time.runRepeatedly(checkNearby, timerDelay, {})
