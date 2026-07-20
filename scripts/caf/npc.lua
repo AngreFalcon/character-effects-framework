@@ -114,68 +114,6 @@ local EQUIP_SLOTS = {
    ["ammunition"] = 18,
 }
 
-local configs = {
-   taper = {
-      conditions = {
-         {
-
-            race = { "argonian" },
-
-            isMale = true,
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            equipment = {
-               ["pants"] = false,
-               ["robe"] = false,
-               ["skirt"] = false,
-            },
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-         },
-      },
-      mesh = 'Meshes/bat/taper.nif',
-      node = "groin",
-      duration = -1,
-   },
-
-
-
-
-
-
-
-
-
-
-}
-
 local function compareRange(value, r, valueMax)
    if not r.percent then
       if ((r.min > r.max) and (value < r.min) and (value > r.max)) or ((value < r.min) or (value > r.max)) then
