@@ -26,6 +26,7 @@ local function loadConfigFiles(): { string: string }
 			--local configId = string.sub(file.fileName, (#configPath), (#file.fileName - #configExtension))
 			local configId = string.match(file.fileName, "([^/\\]+)%..+$")
 			configData[configId] = file:read("*all")
+			print("config file " .. configId .. " loaded")
 		end
 	end
 	return configData

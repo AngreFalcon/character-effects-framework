@@ -122,8 +122,11 @@ local function compareRange(value, r, valueMax)
          return false
       end
    elseif valueMax ~= nil and valueMax ~= 0 then
-      local ratio = value / valueMax
+      local ratio = (value / valueMax * 100)
       if ((r.min > r.max) and (ratio < r.min) and (ratio > r.max)) or ((ratio < r.min) or (ratio > r.max)) then
+         print("current dynStat: " .. value)
+         print("max dynStat: " .. valueMax)
+         print("ratio: " .. ratio)
          return false
       end
    else
@@ -165,6 +168,10 @@ local CONDITIONS = {
          if actorRace == race[i] then
             return true
          end
+      end
+      if types.NPC.record(this.object).id == "safl_shies" then
+         print("actor race: " .. actorRace)
+         print("expected race: " .. race[1])
       end
       return false
    end,
@@ -293,20 +300,23 @@ local CONDITIONS = {
    },
 }
 
-local function checkEffectConditions()
+local function checkEffectConditions(effectId, effect)
+   for _, v1 in ipairs(effect.conditions) do
+      for _, v2 in ipairs(CONDITIONS) do
+         local condition = (v1)[v2[1]]
+         if condition ~= nil and v2[2](condition) == false then
+            removeCosmetic(effectId)
+            return
+         end
+      end
+   end
+   applyCosmetic(effectId, effect.node, effect.mesh)
+end
+
+local function loopThroughEffects()
    for _, contents in pairs(configData) do
       for effectId, effect in pairs(contents) do
-         local conditions = effect.conditions
-         for _, v1 in ipairs(conditions) do
-            for _, v2 in ipairs(CONDITIONS) do
-               local condition = (v1)[v2[1]]
-               if condition ~= nil and v2[2](condition) == false then
-                  removeCosmetic(effectId)
-                  return
-               end
-            end
-         end
-         applyCosmetic(effectId, effect.node, effect.mesh)
+         checkEffectConditions(effectId, effect)
       end
    end
 end
@@ -314,7 +324,7 @@ end
 local function checkNearby()
    for _, v in ipairs(nearby.players) do
       if v ~= nil and types.Actor.isInActorsProcessingRange(v) == true then
-         checkEffectConditions()
+         loopThroughEffects()
          break
       end
    end
