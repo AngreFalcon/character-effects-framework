@@ -26,7 +26,6 @@ local function loadConfigFiles()
 
          local configId = string.match(file.fileName, "([^/\\]+)%..+$")
          configData[configId] = file:read("*all")
-         print("config file " .. configId .. " loaded")
       end
    end
    return configData
@@ -61,7 +60,8 @@ return {
       end,
       onUpdate = function()
          for i = 1, #world.activeActors do
-            syncMWVars(world.activeActors[i])
+            local actor = world.activeActors[i]
+            syncMWVars(actor)
          end
       end,
    },

@@ -124,9 +124,6 @@ local function compareRange(value: number, r: Range, valueMax?: number): boolean
 	elseif valueMax ~= nil and valueMax ~= 0 then
 		local ratio = (value / valueMax * 100)
 		if ((r.min > r.max) and (ratio < r.min) and (ratio > r.max)) or ((ratio < r.min) or (ratio > r.max)) then
-			print("current dynStat: " .. value)
-			print("max dynStat: " .. valueMax)
-			print("ratio: " .. ratio)
 			return false
 		end
 	else
@@ -168,10 +165,6 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 				if actorRace == race[i] then
 					return true
 				end
-			end
-			if types.NPC.record(this.object).id == "safl_shies" then
-				print("actor race: " .. actorRace)
-				print("expected race: " .. race[1])
 			end
 			return false
 		end
