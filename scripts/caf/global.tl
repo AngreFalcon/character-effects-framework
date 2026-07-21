@@ -61,7 +61,6 @@ return {
       	onActorActive = function(actor: core.GameObject)
 			syncMWVars(actor)
 			storage.globalSection(actor.id):setLifeTime(storage.LIFE_TIME.GameSession as storage.LifeTime)
-			--time.runRepeatedly(syncMWVars(actor), timerDelay, {})
       	end,
 		onUpdate = function()
 			if ((realTime - elapsedTime) >= (timerDelay)) then

@@ -10,7 +10,7 @@ local realTime: number = core.getRealTime()
 local elapsedTime: number = 0
 local timerDelay <const>: number = (0.1 * time.second)
 local configData: storage.StorageSection
-local mwvarsTable: storage.StorageSection
+local varsTable: storage.StorageSection
 
 local interface Range 
 	min: number
@@ -31,7 +31,7 @@ local interface Condition
 	isMale: boolean
 	isWerewolf: boolean
 	isDead: boolean
-	mwvars: { string: Range }
+	vars: { string: Range }
 	dynStats: { string: Range }
 	attributes: { string: Range }
 	skills: { string: Range }
@@ -195,13 +195,13 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 		end
 	},
 
-	{ "mwvars",
-		function(mwvars: { string: Range }): boolean
-			if mwvarsTable == nil then
+	{ "vars",
+		function(vars: { string: Range }): boolean
+			if varsTable == nil then
 				return false
 			end
-			for k, range in pairs(mwvars) do
-				local value = mwvarsTable:get(k)
+			for k, range in pairs(vars) do
+				local value = varsTable:get(k)
 				if value == nil or compareRange(value as integer, range, range.maxValue) == false then
 					return false
 				end
@@ -298,10 +298,6 @@ local function checkEffectConditions(effectId: string, effect: Config)
 		for _, v2 in ipairs(CONDITIONS) do
 			local condition = (v1 as { string: any })[v2[1]]
 			if condition ~= nil and v2[2](condition) == false then
-				if types.NPC.record(this.object).id == "bat_slut" then
-					print(effectId)
-					print(v2[1])
-				end
 				removeCosmetic(effectId)
 				return
 			end
@@ -331,7 +327,7 @@ return {
    	engineHandlers = {
 		onActive = function()
 			configData = storage.globalSection("CAF_ConfigData")
-			mwvarsTable = storage.globalSection(this.object.id)
+			varsTable = storage.globalSection(this.object.id)
 			time.runRepeatedly(checkNearby, timerDelay, {})
 		end,
 		onUpdate = function()

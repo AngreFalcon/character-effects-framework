@@ -10,7 +10,7 @@ local realTime = core.getRealTime()
 local elapsedTime = 0
 local timerDelay = (0.1 * time.second)
 local configData
-local mwvarsTable
+local varsTable
 
 
 
@@ -195,13 +195,13 @@ local CONDITIONS = {
    end,
    },
 
-   { "mwvars",
-   function(mwvars)
-      if mwvarsTable == nil then
+   { "vars",
+   function(vars)
+      if varsTable == nil then
          return false
       end
-      for k, range in pairs(mwvars) do
-         local value = mwvarsTable:get(k)
+      for k, range in pairs(vars) do
+         local value = varsTable:get(k)
          if value == nil or compareRange(value, range, range.maxValue) == false then
             return false
          end
@@ -298,10 +298,6 @@ local function checkEffectConditions(effectId, effect)
       for _, v2 in ipairs(CONDITIONS) do
          local condition = (v1)[v2[1]]
          if condition ~= nil and v2[2](condition) == false then
-            if types.NPC.record(this.object).id == "bat_slut" then
-               print(effectId)
-               print(v2[1])
-            end
             removeCosmetic(effectId)
             return
          end
@@ -331,7 +327,7 @@ return {
    engineHandlers = {
       onActive = function()
          configData = storage.globalSection("CAF_ConfigData")
-         mwvarsTable = storage.globalSection(this.object.id)
+         varsTable = storage.globalSection(this.object.id)
          time.runRepeatedly(checkNearby, timerDelay, {})
       end,
       onUpdate = function()
