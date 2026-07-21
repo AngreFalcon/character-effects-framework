@@ -2,14 +2,18 @@ local core = require("openmw.core")
 local world = require("openmw.world")
 local storage = require("openmw.storage")
 local vfs = require('openmw.vfs')
+local time = require('openmw_aux.time')
 local json = require('scripts.lib.json')
+
+local timerDelay <const>: number = (0.1 * time.second)
+local realTime: number = core.getRealTime()
+local elapsedTime: number = 0
 
 local function syncMWVars(actor: core.GameObject) -- Get the current state of all local mwscript variables associated with the provided actor
 	if actor ~= nil then
 		local localScript: world.MWScript = world.mwscript.getLocalScript(actor, nil)
 		if localScript ~= nil then
             local varTable = storage.globalSection(actor.id)
-			varTable:setLifeTime(storage.LIFE_TIME.GameSession as storage.LifeTime)
             for k, v in pairs((localScript.variables as {string: number})) do
                 varTable:set(k, v)
 			end
@@ -42,7 +46,6 @@ end
 local function storeConfigFiles(parsedConfigData: { string: any })
 	local configSection = storage.globalSection("CAF_ConfigData")
 	configSection:setLifeTime(storage.LIFE_TIME.GameSession as storage.LifeTime)
-	configSection:reset({})
 	for k, v in pairs(parsedConfigData) do
 		configSection:set(k, v)
 	end
@@ -55,15 +58,21 @@ return {
 			local parsedConfigData = parseConfigFiles(configData)
 			storeConfigFiles(parsedConfigData)
 		end,
-      	onActorActive = function(actor: core.GameObject) 
-         	syncMWVars(actor)
+      	onActorActive = function(actor: core.GameObject)
+			syncMWVars(actor)
+			storage.globalSection(actor.id):setLifeTime(storage.LIFE_TIME.GameSession as storage.LifeTime)
+			--time.runRepeatedly(syncMWVars(actor), timerDelay, {})
       	end,
 		onUpdate = function()
-			for i = 1, #world.activeActors do
-				local actor = world.activeActors[i]
-				syncMWVars(actor)
+			if ((realTime - elapsedTime) >= (timerDelay)) then
+				for i = 1, #world.activeActors do
+					local actor = world.activeActors[i]
+					syncMWVars(actor)
+				end
+				elapsedTime = realTime
 			end
-		end
+			realTime = core.getRealTime()
+		end,
    	},
 }
 

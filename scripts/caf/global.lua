@@ -2,14 +2,18 @@ local _tl_compat; if (tonumber((_VERSION or ''):match('[%d.]*$')) or 0) < 5.3 th
 local world = require("openmw.world")
 local storage = require("openmw.storage")
 local vfs = require('openmw.vfs')
+local time = require('openmw_aux.time')
 local json = require('scripts.lib.json')
+
+local timerDelay = (0.1 * time.second)
+local realTime = core.getRealTime()
+local elapsedTime = 0
 
 local function syncMWVars(actor)
    if actor ~= nil then
       local localScript = world.mwscript.getLocalScript(actor, nil)
       if localScript ~= nil then
          local varTable = storage.globalSection(actor.id)
-         varTable:setLifeTime(storage.LIFE_TIME.GameSession)
          for k, v in pairs((localScript.variables)) do
             varTable:set(k, v)
          end
@@ -42,7 +46,6 @@ end
 local function storeConfigFiles(parsedConfigData)
    local configSection = storage.globalSection("CAF_ConfigData")
    configSection:setLifeTime(storage.LIFE_TIME.GameSession)
-   configSection:reset({})
    for k, v in pairs(parsedConfigData) do
       configSection:set(k, v)
    end
@@ -57,12 +60,18 @@ return {
       end,
       onActorActive = function(actor)
          syncMWVars(actor)
+         storage.globalSection(actor.id):setLifeTime(storage.LIFE_TIME.GameSession)
+
       end,
       onUpdate = function()
-         for i = 1, #world.activeActors do
-            local actor = world.activeActors[i]
-            syncMWVars(actor)
+         if ((realTime - elapsedTime) >= (timerDelay)) then
+            for i = 1, #world.activeActors do
+               local actor = world.activeActors[i]
+               syncMWVars(actor)
+            end
+            elapsedTime = realTime
          end
+         realTime = core.getRealTime()
       end,
    },
 }

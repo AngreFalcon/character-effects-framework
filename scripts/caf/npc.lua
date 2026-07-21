@@ -9,7 +9,7 @@ local nearby = require('openmw.nearby')
 local realTime = core.getRealTime()
 local elapsedTime = 0
 local timerDelay = (0.1 * time.second)
-local configData = {}
+local configData
 local mwvarsTable
 
 
@@ -298,6 +298,10 @@ local function checkEffectConditions(effectId, effect)
       for _, v2 in ipairs(CONDITIONS) do
          local condition = (v1)[v2[1]]
          if condition ~= nil and v2[2](condition) == false then
+            if types.NPC.record(this.object).id == "bat_slut" then
+               print(effectId)
+               print(v2[1])
+            end
             removeCosmetic(effectId)
             return
          end
@@ -307,7 +311,7 @@ local function checkEffectConditions(effectId, effect)
 end
 
 local function loopThroughEffects()
-   for _, contents in pairs(configData) do
+   for _, contents in pairs(configData:asTable()) do
       for effectId, effect in pairs(contents) do
          checkEffectConditions(effectId, effect)
       end
@@ -325,11 +329,9 @@ end
 
 return {
    engineHandlers = {
-      onInit = function()
-         configData = storage.globalSection("CAF_ConfigData"):asTable()
-         mwvarsTable = storage.globalSection(this.object.id)
-      end,
       onActive = function()
+         configData = storage.globalSection("CAF_ConfigData")
+         mwvarsTable = storage.globalSection(this.object.id)
          time.runRepeatedly(checkNearby, timerDelay, {})
       end,
       onUpdate = function()
