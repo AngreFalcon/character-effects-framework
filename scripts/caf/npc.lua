@@ -47,6 +47,7 @@ local varsTable
 
 
 
+
 local DYNAMIC_STATS = {
    ["health"] = types.Actor.stats.dynamic.health,
    ["fatigue"] = types.Actor.stats.dynamic.fatigue,
@@ -192,6 +193,14 @@ local CONDITIONS = {
    { "isDead",
    function(isDead)
       return types.Actor.isDead(this.object) == isDead
+   end,
+   },
+
+   { "isSlave",
+   function(isSlave)
+      local leftSlaveBracer = (types.Actor.getEquipment(this.object, EQUIP_SLOTS["leftgauntlet"])).recordId == "slave_brace_left"
+      local rightSlaveBracer = (types.Actor.getEquipment(this.object, EQUIP_SLOTS["rightgauntlet"])).recordId == "slave_brace_right"
+      return (types.NPC.record(this.object).class == "slave" and (rightSlaveBracer or leftSlaveBracer)) == isSlave
    end,
    },
 

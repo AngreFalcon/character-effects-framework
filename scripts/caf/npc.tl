@@ -31,6 +31,7 @@ local interface Condition
 	isMale: boolean
 	isWerewolf: boolean
 	isDead: boolean
+	isSlave: boolean
 	vars: { string: Range }
 	dynStats: { string: Range }
 	attributes: { string: Range }
@@ -192,6 +193,14 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	{ "isDead",
 		function(isDead: boolean): boolean
 			return types.Actor.isDead(this.object) == isDead
+		end
+	},
+
+	{ "isSlave",
+		function(isSlave: boolean): boolean
+			local leftSlaveBracer: boolean = (types.Actor.getEquipment(this.object, EQUIP_SLOTS["leftgauntlet"]) as core.GameObject).recordId == "slave_brace_left"
+			local rightSlaveBracer: boolean = (types.Actor.getEquipment(this.object, EQUIP_SLOTS["rightgauntlet"]) as core.GameObject).recordId == "slave_brace_right"
+			return (types.NPC.record(this.object).class == "slave" and (rightSlaveBracer or leftSlaveBracer)) == isSlave
 		end
 	},
 
