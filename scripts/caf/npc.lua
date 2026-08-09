@@ -8,9 +8,10 @@ local nearby = require('openmw.nearby')
 
 local realTime = core.getRealTime()
 local elapsedTime = 0
-local timerDelay = (0.1 * time.second)
 local configData
 local varsTable
+local configSettings
+local settings
 
 
 
@@ -316,9 +317,11 @@ local function checkEffectConditions(effectId, effect)
 end
 
 local function loopThroughEffects()
-   for _, contents in pairs(configData:asTable()) do
+   for fileName, contents in pairs(configData:asTable()) do
       for effectId, effect in pairs(contents) do
-         checkEffectConditions(effectId, effect)
+         if ((configSettings:asTable()["configToggle" .. fileName])[effectId] == true) then
+            checkEffectConditions(effectId, effect)
+         end
       end
    end
 end
@@ -337,10 +340,12 @@ return {
       onActive = function()
          configData = storage.globalSection("CAF_ConfigData")
          varsTable = storage.globalSection(this.object.id)
-         time.runRepeatedly(checkNearby, timerDelay, {})
+         configSettings = storage.globalSection("SettingsCharacterAppearanceFrameworkConfigs")
+         settings = storage.globalSection("SettingsGeneralCharacterAppearanceFramework")
+         time.runRepeatedly(checkNearby, (settings:asTable().cafTickDelay), {})
       end,
       onUpdate = function()
-         if core.isWorldPaused() and ((realTime - elapsedTime) >= (timerDelay)) then
+         if core.isWorldPaused() and ((realTime - elapsedTime) >= (settings:asTable().cafTickDelay)) then
             checkNearby()
             elapsedTime = realTime
          end

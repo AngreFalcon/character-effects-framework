@@ -8,9 +8,10 @@ local nearby = require('openmw.nearby')
 
 local realTime: number = core.getRealTime()
 local elapsedTime: number = 0
-local timerDelay <const>: number = (0.1 * time.second)
 local configData: storage.StorageSection
 local varsTable: storage.StorageSection
+local configSettings: storage.StorageSection
+local settings: storage.StorageSection
 
 local interface Range 
 	min: number
@@ -316,9 +317,11 @@ local function checkEffectConditions(effectId: string, effect: Config)
 end
 
 local function loopThroughEffects()
-	for _, contents in pairs(configData:asTable()) do
+	for fileName, contents in pairs(configData:asTable() as { string: any }) do
 		for effectId, effect in pairs(contents as { string: Config }) do
-			checkEffectConditions(effectId, effect)
+			if ((configSettings:asTable()["configToggle" .. fileName] as { string: boolean })[effectId] == true) then
+				checkEffectConditions(effectId, effect)
+			end
 		end
 	end
 end
@@ -337,10 +340,12 @@ return {
 		onActive = function()
 			configData = storage.globalSection("CAF_ConfigData")
 			varsTable = storage.globalSection(this.object.id)
-			time.runRepeatedly(checkNearby, timerDelay, {})
+			configSettings = storage.globalSection("SettingsCharacterAppearanceFrameworkConfigs")
+			settings = storage.globalSection("SettingsGeneralCharacterAppearanceFramework")
+			time.runRepeatedly(checkNearby, (settings:asTable().cafTickDelay as number), {})
 		end,
 		onUpdate = function()
-			if core.isWorldPaused() and((realTime - elapsedTime) >= (timerDelay)) then
+			if core.isWorldPaused() and((realTime - elapsedTime) >= (settings:asTable().cafTickDelay as number)) then
 				checkNearby()
 				elapsedTime = realTime
 			end
