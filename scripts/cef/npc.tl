@@ -338,10 +338,10 @@ end
 return {
    	engineHandlers = {
 		onActive = function()
-			configData = storage.globalSection("CAF_ConfigData")
+			configData = storage.globalSection("CEF_ConfigData")
 			varsTable = storage.globalSection(this.object.id)
-			configSettings = storage.globalSection("SettingsCharacterAppearanceFrameworkConfigs")
-			settings = storage.globalSection("SettingsGeneralCharacterAppearanceFramework")
+			configSettings = storage.globalSection("SettingsCharacterEffectsFrameworkConfigs")
+			settings = storage.globalSection("SettingsGeneralCharacterEffectsFramework")
 			time.runRepeatedly(checkNearby, (settings:asTable().cafTickDelay as number), {})
 		end,
 		onUpdate = function()

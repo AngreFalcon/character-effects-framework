@@ -23,7 +23,7 @@ end
 
 local function loadConfigFiles(): { string: string }
 	local configData: { string: string } = {}
-	local configPath = "/scripts/caf/configs/"
+	local configPath = "/scripts/cef/configs/"
 	for fileName in vfs.pathsWithPrefix(configPath) do
 		local file = vfs.open(fileName as string)
 		if file ~= nil then
@@ -44,7 +44,7 @@ local function parseConfigFiles(configData: { string: string}): { string: any }
 end
 
 local function storeConfigFiles(parsedConfigData: { string: any })
-	local configSection = storage.globalSection("CAF_ConfigData")
+	local configSection = storage.globalSection("CEF_ConfigData")
 	configSection:setLifeTime(storage.LIFE_TIME.GameSession as storage.LifeTime)
 	for k, v in pairs(parsedConfigData) do
 		configSection:set(k, v)

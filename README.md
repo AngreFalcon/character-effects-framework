@@ -1,2 +1,0 @@
-# Shies-Away-From-Light
-
