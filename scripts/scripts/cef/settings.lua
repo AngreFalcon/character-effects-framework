@@ -38,7 +38,7 @@ I.Settings.registerGroup({
    l10n = 'SettingsCharacterEffectsFrameworkConfigs',
    page = 'CharacterEffectsFrameworkPage',
    name = 'Character Effects Framework Settings',
-   description = 'Settings related to Character Effects Framework',
+   description = 'These settings allow you to toggle on/off configurations in-game, and are organized by the file they originate from.',
    permanentStorage = false,
    settings = getToggleSettings(),
 })
