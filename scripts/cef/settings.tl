@@ -55,7 +55,7 @@ I.Settings.registerGroup {
 			renderer = "number",
 			name = "Update Detail",
 			key = "cefTickDelay",
-			description = "The tickrate for Character Effects Framework.",
+			description = "The tickrate in seconds for Character Effects Framework. Lower values may affect performance in NPC-heavy areas.",
 			default = 0.2,
 			argument = {
 				min = 0.05,
