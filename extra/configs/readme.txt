@@ -1,5 +1,0 @@
-CEF uses JSON files for its configurations. Each JSON file can host any number of effects, all designated by an effect ID. In the example config file, for instance, we have 2 effects; example and example2.
-Each effect contains the path of a single .nif file and a node in the form of a string, which refers to a particular bone that is part of the actor's skeleton.
-Each effect also contains a conditions element, which is an array of objects. Each object is an individual condition; the way conditions for effects work is that only one of the conditions within the array must be true for the effect to be applied. A condition is only true if all of its elements are true.
-Take, for example, our "example" effect. There are two objects within the conditions array. For the first condition to be true and the effect to be applied, the NPC must have a character ID of "caius cosades", must be either an argonian or a khajiit, must be any level between 1 and 100, and so on.
-However, because our second condition only requires the NPC be a nord, all nord characters in the game will have the effect applied.

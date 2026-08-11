@@ -53,7 +53,7 @@ I.Settings.registerGroup({
    settings = {
       {
          renderer = "number",
-         name = "Update Detail",
+         name = "Tick Rate",
          key = "cefTickDelay",
          description = "The tickrate in seconds for Character Effects Framework. Lower values may affect performance in NPC-heavy areas.",
          default = 0.2,
