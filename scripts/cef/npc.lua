@@ -321,6 +321,8 @@ local function loopThroughEffects()
       for effectId, effect in pairs(contents) do
          if ((configSettings:asTable()["configToggle" .. fileName])[effectId] == true) then
             checkEffectConditions(effectId, effect)
+         else
+            removeCosmetic(effectId)
          end
       end
    end
