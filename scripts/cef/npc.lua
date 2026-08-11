@@ -342,10 +342,10 @@ return {
          varsTable = storage.globalSection(this.object.id)
          configSettings = storage.globalSection("SettingsCharacterEffectsFrameworkConfigs")
          settings = storage.globalSection("SettingsGeneralCharacterEffectsFramework")
-         time.runRepeatedly(checkNearby, (settings:asTable().cafTickDelay), {})
+         time.runRepeatedly(checkNearby, (settings:asTable().cefTickDelay), {})
       end,
       onUpdate = function()
-         if core.isWorldPaused() and ((realTime - elapsedTime) >= (settings:asTable().cafTickDelay)) then
+         if core.isWorldPaused() and ((realTime - elapsedTime) >= (settings:asTable().cefTickDelay)) then
             checkNearby()
             elapsedTime = realTime
          end
