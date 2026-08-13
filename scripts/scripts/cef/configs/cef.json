@@ -1,8 +1,10 @@
 {
 	"slavecollar": {
-		"conditions": {
-			"isSlave": true
-		},
+		"conditions": [
+			{
+				"isSlave": true
+			}
+		],
 		"mesh": "meshes/cef/Slave Collar.nif",
 		"node": "neck"
 	}
