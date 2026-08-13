@@ -199,9 +199,11 @@ local CONDITIONS = {
 
    { "isSlave",
    function(isSlave)
-      local leftSlaveBracer = (types.Actor.getEquipment(this.object, EQUIP_SLOTS["leftgauntlet"])).recordId == "slave_brace_left"
-      local rightSlaveBracer = (types.Actor.getEquipment(this.object, EQUIP_SLOTS["rightgauntlet"])).recordId == "slave_brace_right"
-      return (types.NPC.record(this.object).class == "slave" and (rightSlaveBracer or leftSlaveBracer)) == isSlave
+      local leftBracer = (types.Actor.getEquipment(this.object, EQUIP_SLOTS["leftgauntlet"]))
+      local rightBracer = (types.Actor.getEquipment(this.object, EQUIP_SLOTS["rightgauntlet"]))
+      local hasLeftBracer = leftBracer ~= nil and leftBracer.recordId == "slave_bracer_left"
+      local hasRightBracer = rightBracer ~= nil and rightBracer.recordId == "slave_bracer_right"
+      return (types.NPC.record(this.object).class == "slave" and (hasRightBracer or hasLeftBracer)) == isSlave
    end,
    },
 

@@ -199,9 +199,11 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 
 	{ "isSlave",
 		function(isSlave: boolean): boolean
-			local leftSlaveBracer: boolean = (types.Actor.getEquipment(this.object, EQUIP_SLOTS["leftgauntlet"]) as core.GameObject).recordId == "slave_brace_left"
-			local rightSlaveBracer: boolean = (types.Actor.getEquipment(this.object, EQUIP_SLOTS["rightgauntlet"]) as core.GameObject).recordId == "slave_brace_right"
-			return (types.NPC.record(this.object).class == "slave" and (rightSlaveBracer or leftSlaveBracer)) == isSlave
+			local leftBracer = (types.Actor.getEquipment(this.object, EQUIP_SLOTS["leftgauntlet"]) as core.GameObject)
+			local rightBracer = (types.Actor.getEquipment(this.object, EQUIP_SLOTS["rightgauntlet"]) as core.GameObject)
+			local hasLeftBracer: boolean = leftBracer ~= nil and leftBracer.recordId == "slave_bracer_left"
+			local hasRightBracer: boolean = rightBracer ~= nil and rightBracer.recordId == "slave_bracer_right"
+			return (types.NPC.record(this.object).class == "slave" and (hasRightBracer or hasLeftBracer)) == isSlave
 		end
 	},
 
