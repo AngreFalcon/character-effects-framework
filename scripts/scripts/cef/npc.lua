@@ -49,6 +49,10 @@ local settings
 
 
 
+
+
+
+
 local DYNAMIC_STATS = {
    ["health"] = types.Actor.stats.dynamic.health,
    ["fatigue"] = types.Actor.stats.dynamic.fatigue,
@@ -134,17 +138,25 @@ local function compareRange(value, r, valueMax)
    return true
 end
 
-local function applyCosmetic(effectID, node, mesh)
-   anim.addVfx(this, mesh, {
-      loop = true,
-      boneName = node,
-      vfxId = effectID,
-      useAmbientLight = false,
-   })
+local function applyCosmetic(effectId, effects)
+   for _, effectData in ipairs(effects) do
+      local vfxId = effectId .. effectData.mesh
+      if vfxId == nil then return end
+      anim.addVfx(this, effectData.mesh, {
+         loop = true,
+         boneName = effectData.node,
+         vfxId = vfxId,
+         useAmbientLight = false,
+      })
+   end
 end
 
-local function removeCosmetic(effectID)
-   anim.removeVfx(this, effectID)
+local function removeCosmetic(effectId, effects)
+   for _, effectData in ipairs(effects) do
+      local vfxId = effectId .. effectData.mesh
+      if vfxId == nil then return end
+      anim.removeVfx(this, vfxId)
+   end
 end
 
 local CONDITIONS = {
@@ -310,12 +322,12 @@ local function checkEffectConditions(effectId, effect)
       for _, v2 in ipairs(CONDITIONS) do
          local condition = (v1)[v2[1]]
          if condition ~= nil and v2[2](condition) == false then
-            removeCosmetic(effectId)
+            removeCosmetic(effectId, effect.effects)
             return
          end
       end
    end
-   applyCosmetic(effectId, effect.node, effect.mesh)
+   applyCosmetic(effectId, effect.effects)
 end
 
 local function loopThroughEffects()
@@ -324,7 +336,7 @@ local function loopThroughEffects()
          if ((configSettings:asTable()["configToggle" .. fileName])[effectId] == true) then
             checkEffectConditions(effectId, effect)
          else
-            removeCosmetic(effectId)
+            removeCosmetic(effectId, effect.effects)
          end
       end
    end

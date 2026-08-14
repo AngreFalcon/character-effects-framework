@@ -5,7 +5,11 @@
 				"isSlave": true
 			}
 		],
-		"mesh": "meshes/cef/Slave Collar.nif",
-		"node": "neck"
+		"effects": [
+			{
+				"mesh": "meshes/cef/Slave Collar.nif",
+				"node": "neck"
+			}
+		]
 	}
 }

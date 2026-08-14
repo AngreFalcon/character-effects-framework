@@ -43,10 +43,14 @@ local interface Condition
 	effects: { string }
 end
 
-local interface Config
-	conditions: { Condition }
+local interface Effect
 	mesh: string
 	node: string
+end
+
+local interface Config
+	conditions: { Condition }
+	effects: { Effect }
 end
 
 local DYNAMIC_STATS <const>: { string: function(core.GameObject): types.DynamicStat } = {
@@ -134,17 +138,25 @@ local function compareRange(value: number, r: Range, valueMax?: number): boolean
 	return true
 end
 
-local function applyCosmetic(effectID: string, node: string, mesh: string)
-	anim.addVfx(this as core.GameObject, mesh, {
-    	loop = true,
-    	boneName = node,
-		vfxId = effectID,
-		useAmbientLight = false,
-  	})
+local function applyCosmetic(effectId: string, effects: { Effect })
+	for _, effectData in ipairs(effects) do
+		local vfxId = effectId .. effectData.mesh
+		if vfxId == nil then return end
+		anim.addVfx(this as core.GameObject, effectData.mesh, {
+    		loop = true,
+    		boneName = effectData.node,
+			vfxId = vfxId,
+			useAmbientLight = false,
+  		})
+	end
 end
 
-local function removeCosmetic(effectID: string)
-	anim.removeVfx(this as core.GameObject, effectID)
+local function removeCosmetic(effectId: string, effects: { Effect })
+	for _, effectData in ipairs(effects) do
+		local vfxId = effectId .. effectData.mesh
+		if vfxId == nil then return end
+		anim.removeVfx(this as core.GameObject, vfxId)
+	end
 end
 
 local CONDITIONS <const>: { { string, function(any) } } = {
@@ -310,12 +322,12 @@ local function checkEffectConditions(effectId: string, effect: Config)
 		for _, v2 in ipairs(CONDITIONS) do
 			local condition = (v1 as { string: any })[v2[1]]
 			if condition ~= nil and v2[2](condition) == false then
-				removeCosmetic(effectId)
+				removeCosmetic(effectId, effect.effects)
 				return
 			end
 		end
 	end
-	applyCosmetic(effectId, effect.node, effect.mesh)
+	applyCosmetic(effectId, effect.effects)
 end
 
 local function loopThroughEffects()
@@ -324,7 +336,7 @@ local function loopThroughEffects()
 			if ((configSettings:asTable()["configToggle" .. fileName] as { string: boolean })[effectId] == true) then
 				checkEffectConditions(effectId, effect)
 			else
-				removeCosmetic(effectId)
+				removeCosmetic(effectId, effect.effects)
 			end
 		end
 	end
