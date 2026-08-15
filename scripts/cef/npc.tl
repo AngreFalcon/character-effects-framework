@@ -13,44 +13,55 @@ local varsTable: storage.StorageSection
 local configSettings: storage.StorageSection
 local settings: storage.StorageSection
 
-local interface Range 
+local interface CEFRange 
 	min: number
 	max: number
 	percent: boolean
 	maxValue: number
 end
 
-local interface Guild
-	rank: Range
-	reputation: Range
+local interface CEFGuild
+	rank: CEFRange
+	reputation: CEFRange
 end
 
-local interface Condition
+local interface CEFCondition
 	charId: { string }
 	race: { string }
-	level: Range
+	level: CEFRange
 	isMale: boolean
 	isWerewolf: boolean
 	isDead: boolean
 	isSlave: boolean
-	vars: { string: Range }
-	dynStats: { string: Range }
-	attributes: { string: Range }
-	skills: { string: Range }
+	vars: { string: CEFRange }
+	dynStats: { string: CEFRange }
+	attributes: { string: CEFRange }
+	skills: { string: CEFRange }
 	equipment: { string: boolean }
 	classes: { string: boolean }
-	guilds: { string: Guild }
+	guilds: { string: CEFGuild }
 	effects: { string }
 end
 
-local interface Effect
+local interface CEFEffect
 	mesh: string
 	node: string
 end
 
-local interface Config
-	conditions: { Condition }
-	effects: { Effect }
+local interface CEFSpell
+	spellId: string
+end
+
+local interface CEFItem
+	itemId: string
+	quantity: integer
+end
+
+local interface CEFConfig
+	conditions: { CEFCondition }
+	effects: { CEFEffect }
+	spells: { CEFSpell }
+	items: { CEFItem }
 end
 
 local DYNAMIC_STATS <const>: { string: function(core.GameObject): types.DynamicStat } = {
@@ -122,7 +133,7 @@ local EQUIP_SLOTS <const>: { string: number } = {
 	["ammunition"] = 18,
 }
 
-local function compareRange(value: number, r: Range, valueMax?: number): boolean
+local function compareRange(value: number, r: CEFRange, valueMax?: number): boolean
 	if not r.percent then
 		if ((r.min > r.max) and (value < r.min) and (value > r.max)) or ((value < r.min) or (value > r.max)) then
 			return false
@@ -138,7 +149,7 @@ local function compareRange(value: number, r: Range, valueMax?: number): boolean
 	return true
 end
 
-local function applyCosmetic(effectId: string, effects: { Effect })
+local function applyCosmetic(effectId: string, effects: { CEFEffect })
 	for _, effectData in ipairs(effects) do
 		local vfxId = effectId .. effectData.mesh
 		if vfxId == nil then return end
@@ -151,7 +162,7 @@ local function applyCosmetic(effectId: string, effects: { Effect })
 	end
 end
 
-local function removeCosmetic(effectId: string, effects: { Effect })
+local function removeCosmetic(effectId: string, effects: { CEFEffect })
 	for _, effectData in ipairs(effects) do
 		local vfxId = effectId .. effectData.mesh
 		if vfxId == nil then return end
@@ -161,7 +172,7 @@ end
 
 local CONDITIONS <const>: { { string, function(any) } } = {
 	{ "charId",
-		function(condId: {string}): boolean
+		function(condId: { string }): boolean
 			local charId = types.NPC.record(this.object as types.Actor).id
 			for i = 1, #condId do
 				if charId == condId[i] then
@@ -173,7 +184,7 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	},
 
 	{ "race",
-		function(race: {string}): boolean
+		function(race: { string }): boolean
 			local actorRace = types.NPC.record(this.object as types.Actor).race
 			for i = 1, #race do
 				if actorRace == race[i] then
@@ -185,7 +196,7 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	},
 
 	{ "level", 
-		function(level: Range): boolean
+		function(level: CEFRange): boolean
 			local actorLevel = types.Actor.stats.level(this.object)
 			return compareRange(actorLevel.current, level)
 		end
@@ -220,7 +231,7 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	},
 
 	{ "vars",
-		function(vars: { string: Range }): boolean
+		function(vars: { string: CEFRange }): boolean
 			if varsTable == nil then
 				return false
 			end
@@ -235,7 +246,7 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	},
 
 	{ "dynStats",
-		function(dynStats: { string: Range }): boolean
+		function(dynStats: { string: CEFRange }): boolean
 			for k, range in pairs(dynStats) do
 				local getStat = DYNAMIC_STATS[k];
 				local dynStat = getStat and getStat(this.object)
@@ -248,7 +259,7 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	},
 
 	{ "attributes",
-		function(attributes: { string: Range }): boolean
+		function(attributes: { string: CEFRange }): boolean
 			for k, range in pairs(attributes) do
 				local getAttr = ATTRIBUTES[k]
 				local attr = getAttr and getAttr(this.object)
@@ -261,7 +272,7 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	},
 
 	{ "skills",
-		function(skills: { string: Range }): boolean
+		function(skills: { string: CEFRange }): boolean
 			for k, range in pairs(skills) do
 				local getSkill = SKILLS[k]
 				local skill = getSkill and getSkill(this.object)
@@ -293,7 +304,7 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	},
 
 	{ "guilds",
-		function(guilds: { string: Guild }): boolean
+		function(guilds: { string: CEFGuild }): boolean
 			local actorGuilds: { string: boolean } = {}
 			for _, v in ipairs(types.NPC.getFactions(this.object)) do
 				actorGuilds[v] = true
@@ -317,26 +328,38 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	},
 }
 
-local function checkEffectConditions(effectId: string, effect: Config)
+local function checkEffectConditions(effectId: string, effect: CEFConfig)
 	for _, v1 in ipairs(effect.conditions) do
 		for _, v2 in ipairs(CONDITIONS) do
 			local condition = (v1 as { string: any })[v2[1]]
 			if condition ~= nil and v2[2](condition) == false then
-				removeCosmetic(effectId, effect.effects)
+				if effect.effects ~= nil then
+					removeCosmetic(effectId, effect.effects)
+				end
 				return
 			end
 		end
 	end
-	applyCosmetic(effectId, effect.effects)
+	if effect.effects ~= nil then
+		applyCosmetic(effectId, effect.effects)
+	end
 end
 
 local function loopThroughEffects()
 	for fileName, contents in pairs(configData:asTable() as { string: any }) do
-		for effectId, effect in pairs(contents as { string: Config }) do
+		for effectId, effect in pairs(contents as { string: CEFConfig }) do
 			if ((configSettings:asTable()["configToggle" .. fileName] as { string: boolean })[effectId] == true) then
 				checkEffectConditions(effectId, effect)
 			else
-				removeCosmetic(effectId, effect.effects)
+				if effect.effects ~= nil then
+					removeCosmetic(effectId, effect.effects)
+				end
+				if effect.spells ~= nil then
+
+				end
+				if effect.items ~= nil then
+
+				end
 			end
 		end
 	end

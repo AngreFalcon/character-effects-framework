@@ -10,6 +10,17 @@
 				"mesh": "meshes/cef/Slave Collar.nif",
 				"node": "neck"
 			}
+		],
+		"spells": [
+			{
+				"spellId": ""
+			}
+		],
+		"items": [
+			{
+				"itemId": "",
+				"quantity": 1
+			}
 		]
 	}
 }

@@ -53,6 +53,17 @@ local settings
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 local DYNAMIC_STATS = {
    ["health"] = types.Actor.stats.dynamic.health,
    ["fatigue"] = types.Actor.stats.dynamic.fatigue,
@@ -322,12 +333,16 @@ local function checkEffectConditions(effectId, effect)
       for _, v2 in ipairs(CONDITIONS) do
          local condition = (v1)[v2[1]]
          if condition ~= nil and v2[2](condition) == false then
-            removeCosmetic(effectId, effect.effects)
+            if effect.effects ~= nil then
+               removeCosmetic(effectId, effect.effects)
+            end
             return
          end
       end
    end
-   applyCosmetic(effectId, effect.effects)
+   if effect.effects ~= nil then
+      applyCosmetic(effectId, effect.effects)
+   end
 end
 
 local function loopThroughEffects()
@@ -336,7 +351,15 @@ local function loopThroughEffects()
          if ((configSettings:asTable()["configToggle" .. fileName])[effectId] == true) then
             checkEffectConditions(effectId, effect)
          else
-            removeCosmetic(effectId, effect.effects)
+            if effect.effects ~= nil then
+               removeCosmetic(effectId, effect.effects)
+            end
+            if effect.spells ~= nil then
+
+            end
+            if effect.items ~= nil then
+
+            end
          end
       end
    end
