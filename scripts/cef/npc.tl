@@ -525,21 +525,30 @@ local function checkNearby()
 	end
 end
 
+local interface SaveData
+	distTable: { string: DistributionTable }
+end
+
 return {
    	engineHandlers = {
+		onSave = function(): SaveData
+			local saveData: SaveData = {}
+			saveData.distTable = distTable
+			return saveData
+		end,
+		onLoad = function(saveData: SaveData)
+			distTable = saveData.distTable
+		end,
 		onActive = function()
 			configData = storage.globalSection("CEF_ConfigData")
 			varsTable = storage.globalSection(this.object.id)
 			configSettings = storage.globalSection("SettingsCharacterEffectsFrameworkConfigs")
 			settings = storage.globalSection("SettingsGeneralCharacterEffectsFramework")
-			--time.runRepeatedly(checkNearby, (settings:asTable().cefTickDelay as number), {})
-			for i = 1, 100 do 
-				print(math.random(1, 3))
-			end
+			time.runRepeatedly(checkNearby, (settings:asTable().cefTickDelay as number), {})
 		end,
 		onUpdate = function()
 			if core.isWorldPaused() and((realTime - elapsedTime) >= (settings:asTable().cefTickDelay as number)) then
-				--checkNearby()
+				checkNearby()
 				elapsedTime = realTime
 			end
 			realTime = core.getRealTime()

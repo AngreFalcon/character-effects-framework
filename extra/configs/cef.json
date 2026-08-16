@@ -67,8 +67,16 @@
 		]
 	},
 	"example2": {
-		"conditions": {},
-		"mesh": "path/to/different/nif.nif",
-		"node": "head"
+		"conditions": [],
+		"effects": [
+			{
+				"mesh": "path/to/different/nif.nif",
+				"node": "head"
+			},
+			{
+				"mesh": "path/to/yet/another/nif.nif",
+				"node": "neck"
+			}
+		]
 	}
 }

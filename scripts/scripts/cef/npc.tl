@@ -525,8 +525,20 @@ local function checkNearby()
 	end
 end
 
+local interface SaveData
+	distTable: { string: DistributionTable }
+end
+
 return {
    	engineHandlers = {
+		onSave = function(): SaveData
+			local saveData: SaveData = {}
+			saveData.distTable = distTable
+			return saveData
+		end,
+		onLoad = function(saveData: SaveData)
+			distTable = saveData.distTable
+		end,
 		onActive = function()
 			configData = storage.globalSection("CEF_ConfigData")
 			varsTable = storage.globalSection(this.object.id)
