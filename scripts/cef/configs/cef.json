@@ -10,16 +10,32 @@
 				"mesh": "meshes/cef/Slave Collar.nif",
 				"node": "neck"
 			}
+		]
+	},
+	"playerspell" : {
+		"conditions": [
+			{
+				"isPlayer": true
+			}
 		],
 		"spells": [
 			{
-				"spellId": ""
+				"spellId": "vivec's feast",
+				"remove": false
+			}
+		]
+	},
+	"playeritem" : {
+		"conditions": [
+			{
+				"isPlayer": true
 			}
 		],
 		"items": [
 			{
-				"itemId": "",
-				"quantity": 1
+				"itemId": "potion_ancient_brandy",
+				"quantity": 10,
+				"remove": false
 			}
 		]
 	}

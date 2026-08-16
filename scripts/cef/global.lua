@@ -4,6 +4,7 @@ local storage = require("openmw.storage")
 local vfs = require('openmw.vfs')
 local time = require('openmw_aux.time')
 local json = require('scripts.lib.json')
+local types = require('openmw.types')
 
 local timerDelay = (0.1 * time.second)
 local realTime = core.getRealTime()
@@ -51,6 +52,12 @@ local function storeConfigFiles(parsedConfigData)
    end
 end
 
+
+
+
+
+
+
 return {
    engineHandlers = {
       onInit = function()
@@ -71,6 +78,17 @@ return {
             elapsedTime = realTime
          end
          realTime = core.getRealTime()
+      end,
+   },
+   eventHandlers = {
+      addItem = function(data)
+         local item = world.createObject(data.itemId, data.quantity)
+         item:moveInto(types.Actor.inventory(data.actor))
+      end,
+      removeItem = function(data)
+         local inventory = types.Actor.inventory(data.actor)
+         local item = inventory:find(data.itemId)
+         item:remove(data.quantity)
       end,
    },
 }

@@ -50,11 +50,13 @@ end
 
 local interface CEFSpell
 	spellId: string
+	remove: boolean
 end
 
 local interface CEFItem
 	itemId: string
-	quantity: integer
+	quantity: number
+	remove: boolean
 end
 
 local interface CEFConfig
@@ -63,6 +65,13 @@ local interface CEFConfig
 	spells: { CEFSpell }
 	items: { CEFItem }
 end
+
+local interface DistributionTable
+	spells: { CEFSpell }
+	items: { CEFItem }
+end
+
+local distTable: { string: DistributionTable } = {} -- effectId.spell/item = true/false
 
 local DYNAMIC_STATS <const>: { string: function(core.GameObject): types.DynamicStat } = {
 	["health"] = types.Actor.stats.dynamic.health,
@@ -133,6 +142,21 @@ local EQUIP_SLOTS <const>: { string: number } = {
 	["ammunition"] = 18,
 }
 
+local ITEM_INTERFACES <const>: { { any } } = {
+	types.Apparatus.records,
+	types.Armor.records,
+	types.Book.records,
+	types.Clothing.records,
+	types.Ingredient.records,
+	types.Light.records,
+	types.Lockpick.records,
+	types.Miscellaneous.records,
+	types.Potion.records,
+	types.Probe.records,
+	types.Repair.records,
+	types.Weapon.records,
+}
+
 local function compareRange(value: number, r: CEFRange, valueMax?: number): boolean
 	if not r.percent then
 		if ((r.min > r.max) and (value < r.min) and (value > r.max)) or ((value < r.min) or (value > r.max)) then
@@ -149,7 +173,48 @@ local function compareRange(value: number, r: CEFRange, valueMax?: number): bool
 	return true
 end
 
-local function applyCosmetic(effectId: string, effects: { CEFEffect })
+local function hasSpell(spellId: string, spellList: { core.Spell }): boolean
+	for _, spell in ipairs(spellList) do
+		if spell.id == spellId then return true end
+	end
+	return false
+end
+
+local function findSpellByID(spellId: string): core.Spell
+	local foundSpell: core.Spell = nil
+	for _, spell in ipairs(core.magic.spells.records) do
+		if spell.id == spellId then
+			foundSpell = spell
+			break
+		end
+	end
+	return foundSpell
+end
+
+local function validateItemId(itemId: string): boolean
+	for _, itemRecords in ipairs(ITEM_INTERFACES) do
+		if (itemRecords as { string: any })[itemId] ~= nil then return true end
+	end
+	return false
+end
+
+local function itemQuantity(itemId: string, actorInventory: core.Inventory): number
+	if actorInventory:find(itemId) ~= nil then
+		return actorInventory:countOf(itemId)
+	else
+		return nil
+	end
+end
+
+local function addItemToActor(itemId: string, quantity: number)
+	core.sendGlobalEvent("addItem", { actor = this.object, itemId = itemId, quantity = quantity })
+end
+
+local function removeItemFromActor(itemId: string, quantity: number)
+	core.sendGlobalEvent("removeItem", { actor = this.object, itemId = itemId, quantity = quantity })
+end
+
+local function applyCosmetics(effectId: string, effects: { CEFEffect })
 	for _, effectData in ipairs(effects) do
 		local vfxId = effectId .. effectData.mesh
 		if vfxId == nil then return end
@@ -162,12 +227,74 @@ local function applyCosmetic(effectId: string, effects: { CEFEffect })
 	end
 end
 
-local function removeCosmetic(effectId: string, effects: { CEFEffect })
+local function removeCosmetics(effectId: string, effects: { CEFEffect })
 	for _, effectData in ipairs(effects) do
 		local vfxId = effectId .. effectData.mesh
 		if vfxId == nil then return end
 		anim.removeVfx(this as core.GameObject, vfxId)
 	end
+end
+
+local function applySpellDistribution(effectId: string, spells: { CEFSpell })
+	distTable[effectId].spells = {}
+	local actorSpells = types.Actor.spells(this as core.GameObject) as { core.Spell }
+	for _, spell in ipairs(spells) do
+		local foundSpell = findSpellByID(spell.spellId)
+		if foundSpell == nil then break end
+		if spell.remove == true and hasSpell(spell.spellId, actorSpells) == true then
+			distTable[effectId].spells[#distTable[effectId].spells + 1] = { spellId = spell.spellId, remove = spell.remove }
+			(actorSpells as types.ActorSpells):remove(foundSpell)
+		elseif spell.remove == false and hasSpell(spell.spellId, actorSpells) == false then
+			distTable[effectId].spells[#distTable[effectId].spells + 1] = { spellId = spell.spellId, remove = spell.remove }
+			(actorSpells as types.ActorSpells):add(foundSpell)
+		end
+	end
+end
+
+local function undoSpellDistribution(effectId: string)
+	local actorSpells = types.Actor.spells(this as core.GameObject) as { core.Spell }
+	for _, spell in ipairs(distTable[effectId].spells) do
+		if spell.remove == true then
+			(actorSpells as types.ActorSpells):add(spell.spellId)
+		else
+			(actorSpells as types.ActorSpells):remove(spell.spellId)
+		end
+	end
+	distTable[effectId].spells = nil
+end
+
+local function applyItemDistribution(effectId: string, items: { CEFItem })
+	distTable[effectId].items = {}
+	local actorInventory = types.Actor.inventory(this as core.GameObject)
+	for _, item in ipairs(items) do
+		if validateItemId(item.itemId) == false then break end
+		local inventoryCount = itemQuantity(item.itemId, actorInventory)
+		if item.remove == true and inventoryCount > 0 then
+			local removeQuantity: number = item.quantity
+			if item.quantity > inventoryCount then
+				removeQuantity = inventoryCount
+			end
+			distTable[effectId].items[#distTable[effectId].items + 1] = { itemId = item.itemId, remove = item.remove, quantity = removeQuantity }
+			removeItemFromActor(item.itemId, removeQuantity)
+		elseif item.remove == false then
+			addItemToActor(item.itemId, item.quantity)
+			distTable[effectId].items[#distTable[effectId].items + 1] = { itemId = item.itemId, remove = item.remove, quantity = item.quantity }
+		end
+	end
+end
+
+local function undoItemDistribution(effectId: string)
+	local actorInventory = types.Actor.inventory(this as core.GameObject)
+	for _, item in ipairs(distTable[effectId].items) do
+		if item.remove == true then
+			addItemToActor(item.itemId, item.quantity)
+		else
+			local removeQuantity = itemQuantity(item.itemId, actorInventory)
+			if removeQuantity >= item.quantity then removeQuantity = item.quantity end
+			removeItemFromActor(item.itemId, removeQuantity)
+		end
+	end
+	distTable[effectId].items = nil
 end
 
 local CONDITIONS <const>: { { string, function(any) } } = {
@@ -217,6 +344,12 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	{ "isDead",
 		function(isDead: boolean): boolean
 			return types.Actor.isDead(this.object) == isDead
+		end
+	},
+
+	{ "isPlayer",
+		function(isPlayer: boolean): boolean
+			return types.Player.objectIsInstance(this.object) == isPlayer
 		end
 	},
 
@@ -326,6 +459,15 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 			return true
 		end
 	},
+
+	{ "getRandom",
+		function(chance: number): boolean
+			if chance == 1 then return true
+			elseif chance < 1 then return false end
+			local random = math.random(1, math.floor(chance))
+			return math.floor((chance / 2) + 0.5) == random
+		end
+	},
 }
 
 local function checkEffectConditions(effectId: string, effect: CEFConfig)
@@ -334,14 +476,21 @@ local function checkEffectConditions(effectId: string, effect: CEFConfig)
 			local condition = (v1 as { string: any })[v2[1]]
 			if condition ~= nil and v2[2](condition) == false then
 				if effect.effects ~= nil then
-					removeCosmetic(effectId, effect.effects)
+					removeCosmetics(effectId, effect.effects)
 				end
 				return
 			end
 		end
 	end
 	if effect.effects ~= nil then
-		applyCosmetic(effectId, effect.effects)
+		applyCosmetics(effectId, effect.effects)
+	end
+	if distTable[effectId] == nil then distTable[effectId] = {} end
+	if effect.spells ~= nil and distTable[effectId].spells == nil then
+		applySpellDistribution(effectId, effect.spells)
+	end
+	if effect.items ~= nil and distTable[effectId].items == nil then
+		applyItemDistribution(effectId, effect.items)
 	end
 end
 
@@ -352,13 +501,15 @@ local function loopThroughEffects()
 				checkEffectConditions(effectId, effect)
 			else
 				if effect.effects ~= nil then
-					removeCosmetic(effectId, effect.effects)
+					removeCosmetics(effectId, effect.effects)
 				end
-				if effect.spells ~= nil then
-
-				end
-				if effect.items ~= nil then
-
+				if distTable[effectId] ~= nil then
+					if effect.spells ~= nil and distTable[effectId].spells ~= nil then
+						undoSpellDistribution(effectId)
+					end
+					if effect.items ~= nil and distTable[effectId].items ~= nil then
+						undoItemDistribution(effectId)
+					end
 				end
 			end
 		end
@@ -381,11 +532,14 @@ return {
 			varsTable = storage.globalSection(this.object.id)
 			configSettings = storage.globalSection("SettingsCharacterEffectsFrameworkConfigs")
 			settings = storage.globalSection("SettingsGeneralCharacterEffectsFramework")
-			time.runRepeatedly(checkNearby, (settings:asTable().cefTickDelay as number), {})
+			--time.runRepeatedly(checkNearby, (settings:asTable().cefTickDelay as number), {})
+			for i = 1, 100 do 
+				print(math.random(1, 3))
+			end
 		end,
 		onUpdate = function()
 			if core.isWorldPaused() and((realTime - elapsedTime) >= (settings:asTable().cefTickDelay as number)) then
-				checkNearby()
+				--checkNearby()
 				elapsedTime = realTime
 			end
 			realTime = core.getRealTime()
