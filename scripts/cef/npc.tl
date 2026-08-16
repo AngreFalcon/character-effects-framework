@@ -464,6 +464,11 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 		function(chance: number): boolean
 			if chance == 1 then return true
 			elseif chance < 1 then return false end
+			local seed: integer = 0
+			for i = 1, #this.object.id do
+				seed = seed + this.object.id:byte(i)
+			end
+			math.randomseed(seed)
 			local random = math.random(1, math.floor(chance))
 			return math.floor((chance / 2) + 0.5) == random
 		end
