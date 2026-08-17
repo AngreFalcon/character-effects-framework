@@ -24,11 +24,10 @@ end
 
 local function loadConfigFiles()
    local configData = {}
-   local configPath = "/scripts/cef/configs/"
+   local configPath = "/scripts/ConditionalEffectsFramework/configs/"
    for fileName in vfs.pathsWithPrefix(configPath) do
       local file = vfs.open(fileName)
       if file ~= nil then
-
          local configId = string.match(file.fileName, "([^/\\]+)%..+$")
          configData[configId] = file:read("*all")
       end
