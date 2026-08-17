@@ -226,7 +226,7 @@ local function applyCosmetics(effectId: string, effects: { CEFEffect })
 	distTable[effectId].effects = {}
 	for _, effectData in ipairs(effects) do
 		local vfxId = effectId .. effectData.mesh
-		if vfxId == nil then return end
+		if vfxId == nil or anim.hasBone(this.object, effectData.node) == false then return end
 		distTable[effectId].effects[#distTable[effectId].effects + 1] = vfxId
 		anim.addVfx(this as core.GameObject, effectData.mesh, {
     		loop = true,
