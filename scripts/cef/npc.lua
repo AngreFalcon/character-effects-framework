@@ -71,6 +71,7 @@ local settings
 
 
 
+
 local distTable = {}
 
 local DYNAMIC_STATS = {
@@ -173,6 +174,13 @@ local function compareRange(value, r, valueMax)
    return true
 end
 
+local function hasEffect(effectId)
+   for appliedEffect, effect in pairs(distTable) do
+      if effectId == appliedEffect and effect ~= nil then print("effectId: " .. effectId); print("appliedEffect: " .. appliedEffect); print(effect ~= nil); return true end
+   end
+   return false
+end
+
 local function hasSpell(spellId, spellList)
    for _, spell in ipairs(spellList) do
       if spell.id == spellId then return true end
@@ -215,9 +223,11 @@ local function removeItemFromActor(itemId, quantity)
 end
 
 local function applyCosmetics(effectId, effects)
+   distTable[effectId].effects = {}
    for _, effectData in ipairs(effects) do
       local vfxId = effectId .. effectData.mesh
       if vfxId == nil then return end
+      distTable[effectId].effects[#distTable[effectId].effects + 1] = vfxId
       anim.addVfx(this, effectData.mesh, {
          loop = true,
          boneName = effectData.node,
@@ -227,12 +237,11 @@ local function applyCosmetics(effectId, effects)
    end
 end
 
-local function removeCosmetics(effectId, effects)
-   for _, effectData in ipairs(effects) do
-      local vfxId = effectId .. effectData.mesh
-      if vfxId == nil then return end
+local function removeCosmetics(effectId)
+   for _, vfxId in ipairs(distTable[effectId].effects) do
       anim.removeVfx(this, vfxId)
    end
+   distTable[effectId].effects = nil
 end
 
 local function applySpellDistribution(effectId, spells)
@@ -474,24 +483,33 @@ local CONDITIONS = {
       return math.floor((chance / 2) + 0.5) == random
    end,
    },
+
+   { "hasEffects",
+   function(_, effectIds)
+      for _, effectId in ipairs(effectIds) do
+         if hasEffect(effectId) == false then return false end
+      end
+      return true
+   end,
+   },
 }
 
 local function checkEffectConditions(effectId, effect)
+   if distTable[effectId] == nil then distTable[effectId] = {} end
    for _, v1 in ipairs(effect.conditions) do
       for _, v2 in ipairs(CONDITIONS) do
          local condition = (v1)[v2[1]]
          if condition ~= nil and v2[2](effectId, condition) == false then
-            if effect.effects ~= nil then
-               removeCosmetics(effectId, effect.effects)
+            if effect.effects ~= nil and distTable[effectId].effects ~= nil then
+               removeCosmetics(effectId)
             end
             return
          end
       end
    end
-   if effect.effects ~= nil then
+   if effect.effects ~= nil and distTable[effectId].effects == nil then
       applyCosmetics(effectId, effect.effects)
    end
-   if distTable[effectId] == nil then distTable[effectId] = {} end
    if effect.spells ~= nil and distTable[effectId].spells == nil then
       applySpellDistribution(effectId, effect.spells)
    end
@@ -505,18 +523,17 @@ local function loopThroughEffects()
       for effectId, effect in pairs(contents) do
          if ((configSettings:asTable()["configToggle" .. fileName])[effectId] == true) then
             checkEffectConditions(effectId, effect)
-         else
-            if effect.effects ~= nil then
-               removeCosmetics(effectId, effect.effects)
+         elseif distTable[effectId] ~= nil then
+            if effect.effects ~= nil and distTable[effectId].effects ~= nil then
+               removeCosmetics(effectId)
             end
-            if distTable[effectId] ~= nil then
-               if effect.spells ~= nil and distTable[effectId].spells ~= nil then
-                  undoSpellDistribution(effectId)
-               end
-               if effect.items ~= nil and distTable[effectId].items ~= nil then
-                  undoItemDistribution(effectId)
-               end
+            if effect.spells ~= nil and distTable[effectId].spells ~= nil then
+               undoSpellDistribution(effectId)
             end
+            if effect.items ~= nil and distTable[effectId].items ~= nil then
+               undoItemDistribution(effectId)
+            end
+            distTable[effectId] = nil
          end
       end
    end

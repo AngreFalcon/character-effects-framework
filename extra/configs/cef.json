@@ -40,7 +40,8 @@
 						"reputation": 1
 					}
 				},
-				"getRandom": { "chance": 10 }
+				"getRandom": { "chance": 10 },
+				"hasEffects": [ "example2" ]
 			},
 			{
 				"race": [ "nord" ]
