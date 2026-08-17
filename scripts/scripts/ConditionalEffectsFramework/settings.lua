@@ -55,6 +55,18 @@ I.Settings.registerGroup({
    permanentStorage = false,
    settings = {
       {
+         renderer = "checkbox",
+         key = "cefEnable",
+         name = "cef_enable_name",
+         description = "cef_enable_desc",
+         default = true,
+         argument = {
+            l10n = "ConditionalEffectsFramework",
+            trueLabel = "cef_enable_enabled",
+            falseLabel = "cef_enable_disabled",
+         },
+      },
+      {
          renderer = "number",
          key = "cefTickDelay",
          name = "tick_rate_name",

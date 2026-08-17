@@ -552,7 +552,7 @@ end
 local function loopThroughEffects()
 	for fileName, contents in pairs(configData:asTable() as { string: any }) do
 		for effectId, effect in pairs(contents as { string: CEFConfig }) do
-			if ((configSettings:asTable()["configToggle" .. fileName] as { string: boolean })[effectId] == true) then
+			if settings:asTable().cefEnable == true and ((configSettings:asTable()["configToggle" .. fileName] as { string: boolean })[effectId] == true) then
 				checkEffectConditions(effectId, effect)
 			elseif distTable[effectId] ~= nil then
 				if effect.effects ~= nil and distTable[effectId].effects ~= nil then
@@ -571,6 +571,9 @@ local function loopThroughEffects()
 end
 
 local function checkNearby()
+	if next(distTable) == nil and settings:asTable().cefEnable == false then
+		return
+	end
 	for _, v in ipairs(nearby.players) do
 		if v ~= nil and types.Actor.isInActorsProcessingRange(v) == true then
 			loopThroughEffects()

@@ -10,5 +10,10 @@ general_settings_group_desc: General settings related to Conditional Effects Fra
 config_toggle_name: "Config Toggle - "
 config_toggle_desc: "Toggle configs from file: "
 
+cef_enable_name: Conditional Effects Framework - Enable/Disable
+cef_enable_desc: Enables or disables Conditional Effects Framework.
+cef_enable_enabled: CEF Enabled
+cef_enable_disabled: CEF Disabled
+
 tick_rate_name: Tick Rate
 tick_rate_desc: The tick rate in seconds for Conditional Effects Framework. Lower values may affect performance in NPC-heavy areas.
