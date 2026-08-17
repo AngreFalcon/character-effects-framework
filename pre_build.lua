@@ -1,8 +1,8 @@
 local lfs = require"lfs"
 
 local projDir = lfs.currentdir()
-local src = projDir .. "/scripts/scripts/cef"
-local dest = projDir .. "/scripts/cef"
+local src = projDir .. "/scripts/scripts/ConditionalEffectsFramework"
+local dest = projDir .. "/scripts/ConditionalEffectsFramework"
 local fileNames = {}
 
 for file in lfs.dir(dest) do -- Deletes all .lua files in build directory

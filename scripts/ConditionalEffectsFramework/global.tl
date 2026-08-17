@@ -24,7 +24,7 @@ end
 
 local function loadConfigFiles(): { string: string }
 	local configData: { string: string } = {}
-	local configPath = "/scripts/cef/configs/"
+	local configPath = "/scripts/ConditionalEffectsFramework/configs/"
 	for fileName in vfs.pathsWithPrefix(configPath) do
 		local file = vfs.open(fileName as string)
 		if file ~= nil then

@@ -6,12 +6,6 @@ local storage = require('openmw.storage')
 local time = require('openmw_aux.time')
 local nearby = require('openmw.nearby')
 
-local realTime = core.getRealTime()
-local elapsedTime = 0
-local configData
-local varsTable
-local configSettings
-local settings
 
 
 
@@ -72,7 +66,11 @@ local settings
 
 
 
-local distTable = {}
+
+
+
+
+
 
 local DYNAMIC_STATS = {
    ["health"] = types.Actor.stats.dynamic.health,
@@ -158,6 +156,18 @@ local ITEM_INTERFACES = {
    types.Weapon.records,
 }
 
+
+
+local realTime = core.getRealTime()
+local elapsedTime = 0
+local configData
+local varsTable
+local configSettings
+local settings
+local distTable = {}
+
+
+
 local function compareRange(value, r, valueMax)
    if not r.percent then
       if ((r.min > r.max) and (value < r.min) and (value > r.max)) or ((value < r.min) or (value > r.max)) then
@@ -176,14 +186,18 @@ end
 
 local function hasEffect(effectId)
    for appliedEffect, effect in pairs(distTable) do
-      if effectId == appliedEffect and effect ~= nil then print("effectId: " .. effectId); print("appliedEffect: " .. appliedEffect); print(effect ~= nil); return true end
+      if effectId == appliedEffect and effect ~= nil then
+         return true
+      end
    end
    return false
 end
 
 local function hasSpell(spellId, spellList)
    for _, spell in ipairs(spellList) do
-      if spell.id == spellId then return true end
+      if spell.id == spellId then
+         return true
+      end
    end
    return false
 end
@@ -201,7 +215,9 @@ end
 
 local function validateItemId(itemId)
    for _, itemRecords in ipairs(ITEM_INTERFACES) do
-      if (itemRecords)[itemId] ~= nil then return true end
+      if (itemRecords)[itemId] ~= nil then
+         return true
+      end
    end
    return false
 end
@@ -226,7 +242,9 @@ local function applyCosmetics(effectId, effects)
    distTable[effectId].effects = {}
    for _, effectData in ipairs(effects) do
       local vfxId = effectId .. effectData.mesh
-      if vfxId == nil or anim.hasBone(this.object, effectData.node) == false then return end
+      if vfxId == nil or anim.hasBone(this.object, effectData.node) == false then
+         return
+      end
       distTable[effectId].effects[#distTable[effectId].effects + 1] = vfxId
       anim.addVfx(this, effectData.mesh, {
          loop = true,
@@ -249,7 +267,9 @@ local function applySpellDistribution(effectId, spells)
    local actorSpells = types.Actor.spells(this)
    for _, spell in ipairs(spells) do
       local foundSpell = findSpellByID(spell.spellId)
-      if foundSpell == nil then break end
+      if foundSpell == nil then
+         break
+      end
       if spell.remove == true and hasSpell(spell.spellId, actorSpells) == true then
          distTable[effectId].spells[#distTable[effectId].spells + 1] = { spellId = spell.spellId, remove = spell.remove };
          (actorSpells):remove(foundSpell)
@@ -276,7 +296,9 @@ local function applyItemDistribution(effectId, items)
    distTable[effectId].items = {}
    local actorInventory = types.Actor.inventory(this)
    for _, item in ipairs(items) do
-      if validateItemId(item.itemId) == false then break end
+      if validateItemId(item.itemId) == false then
+         break
+      end
       local inventoryCount = itemQuantity(item.itemId, actorInventory)
       if item.remove == true and inventoryCount > 0 then
          local removeQuantity = item.quantity
@@ -299,7 +321,9 @@ local function undoItemDistribution(effectId)
          addItemToActor(item.itemId, item.quantity)
       else
          local removeQuantity = itemQuantity(item.itemId, actorInventory)
-         if removeQuantity >= item.quantity then removeQuantity = item.quantity end
+         if removeQuantity > item.quantity then
+            removeQuantity = item.quantity
+         end
          removeItemFromActor(item.itemId, removeQuantity)
       end
    end
@@ -471,8 +495,11 @@ local CONDITIONS = {
 
    { "getRandom",
    function(effectId, chance)
-      if chance == 1 then return true
-      elseif chance < 1 then return false end
+      if chance == 1 then
+         return true
+      elseif chance < 1 then
+         return false
+      end
       local seed = 0
       local seedString = this.object.id .. effectId
       for i = 1, #seedString do
@@ -487,7 +514,9 @@ local CONDITIONS = {
    { "hasEffects",
    function(_, effectIds)
       for _, effectId in ipairs(effectIds) do
-         if hasEffect(effectId) == false then return false end
+         if hasEffect(effectId) == false then
+            return false
+         end
       end
       return true
    end,
@@ -495,7 +524,9 @@ local CONDITIONS = {
 }
 
 local function checkEffectConditions(effectId, effect)
-   if distTable[effectId] == nil then distTable[effectId] = {} end
+   if distTable[effectId] == nil then
+      distTable[effectId] = {}
+   end
    for _, v1 in ipairs(effect.conditions) do
       for _, v2 in ipairs(CONDITIONS) do
          local condition = (v1)[v2[1]]
@@ -548,10 +579,6 @@ local function checkNearby()
    end
 end
 
-
-
-
-
 return {
    engineHandlers = {
       onSave = function()
@@ -565,8 +592,8 @@ return {
       onActive = function()
          configData = storage.globalSection("CEF_ConfigData")
          varsTable = storage.globalSection(this.object.id)
-         configSettings = storage.globalSection("SettingsCharacterEffectsFrameworkConfigs")
-         settings = storage.globalSection("SettingsGeneralCharacterEffectsFramework")
+         configSettings = storage.globalSection("SettingsConditionalEffectsFrameworkConfigs")
+         settings = storage.globalSection("SettingsGeneralConditionalEffectsFramework")
          time.runRepeatedly(checkNearby, (settings:asTable().cefTickDelay), {})
       end,
       onUpdate = function()

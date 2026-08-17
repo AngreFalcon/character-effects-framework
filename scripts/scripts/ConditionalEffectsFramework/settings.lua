@@ -1,5 +1,8 @@
 local _tl_compat; if (tonumber((_VERSION or ''):match('[%d.]*$')) or 0) < 5.3 then local p, m = pcall(require, 'compat53.module'); if p then _tl_compat = m end end; local pairs = _tl_compat and _tl_compat.pairs or pairs; local I = require('openmw.interfaces')
 local storage = require('openmw.storage')
+local core = require('openmw.core')
+
+local l10n = core.l10n("ConditionalEffectsFramework", "en")
 
 local cefConfigData = storage.globalSection("CEF_ConfigData"):asTable()
 local cafConfigs = {}
@@ -12,9 +15,9 @@ end
 local function genConfigToggles(fileName)
    local settings = {}
    settings.renderer = "multiselect"
-   settings.description = "Toggle configs from file: " .. fileName
-   settings.name = "Config Toggle - " .. fileName
    settings.key = "configToggle" .. fileName
+   settings.name = (l10n("config_toggle_name")) .. fileName
+   settings.description = (l10n("config_toggle_desc")) .. fileName
    settings.default = {}
    settings.argument = {};
    (settings.argument).keys = {}
@@ -34,28 +37,28 @@ local function getToggleSettings()
 end
 
 I.Settings.registerGroup({
-   key = 'SettingsCharacterEffectsFrameworkConfigs',
-   l10n = 'SettingsCharacterEffectsFrameworkConfigs',
-   page = 'CharacterEffectsFrameworkPage',
-   name = 'Character Effects Framework Settings',
-   description = 'These settings allow you to toggle on/off configurations in-game, and are organized by the file they originate from.',
+   key = 'SettingsConditionalEffectsFrameworkConfigs',
+   l10n = 'ConditionalEffectsFramework',
+   page = 'ConditionalEffectsFrameworkPage',
+   name = 'toggle_settings_group_name',
+   description = 'toggle_settings_group_desc',
    permanentStorage = false,
    settings = getToggleSettings(),
 })
 
 I.Settings.registerGroup({
-   key = 'SettingsGeneralCharacterEffectsFramework',
-   l10n = 'SettingsGeneralCharacterEffectsFramework',
-   page = 'CharacterEffectsFrameworkPage',
-   name = 'Character Effects Framework General Settings',
-   description = 'Settings related to Character Effects Framework',
+   key = 'SettingsGeneralConditionalEffectsFramework',
+   l10n = 'ConditionalEffectsFramework',
+   page = 'ConditionalEffectsFrameworkPage',
+   name = 'general_settings_group_name',
+   description = 'general_settings_group_desc',
    permanentStorage = false,
    settings = {
       {
          renderer = "number",
-         name = "Tick Rate",
          key = "cefTickDelay",
-         description = "The tickrate in seconds for Character Effects Framework. Lower values may affect performance in NPC-heavy areas.",
+         name = "tick_rate_name",
+         description = "tick_rate_desc",
          default = 0.2,
          argument = {
             min = 0.05,

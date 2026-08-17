@@ -6,13 +6,7 @@ local storage = require('openmw.storage')
 local time = require('openmw_aux.time')
 local nearby = require('openmw.nearby')
 
-local realTime: number = core.getRealTime()
-local elapsedTime: number = 0
-local configData: storage.StorageSection
-local varsTable: storage.StorageSection
-local configSettings: storage.StorageSection
-local settings: storage.StorageSection
-
+-- interfaces
 local interface CEFRange 
 	min: number
 	max: number
@@ -72,8 +66,12 @@ local interface DistributionTable
 	items: { CEFItem }
 end
 
-local distTable: { string: DistributionTable } = {} -- effectId.spell/item = true/false
+local interface SaveData
+	distTable: { string: DistributionTable }
+end
+-- end interfaces
 
+-- constants
 local DYNAMIC_STATS <const>: { string: function(core.GameObject): types.DynamicStat } = {
 	["health"] = types.Actor.stats.dynamic.health,
 	["fatigue"] = types.Actor.stats.dynamic.fatigue,
@@ -157,7 +155,19 @@ local ITEM_INTERFACES <const>: { { any } } = {
 	types.Repair.records,
 	types.Weapon.records,
 }
+-- end constants
 
+-- variables
+local realTime: number = core.getRealTime()
+local elapsedTime: number = 0
+local configData: storage.StorageSection
+local varsTable: storage.StorageSection
+local configSettings: storage.StorageSection
+local settings: storage.StorageSection
+local distTable: { string: DistributionTable } = {} -- effectId.spell/item = true/false
+-- end variables
+
+-- functions
 local function compareRange(value: number, r: CEFRange, valueMax?: number): boolean
 	if not r.percent then
 		if ((r.min > r.max) and (value < r.min) and (value > r.max)) or ((value < r.min) or (value > r.max)) then
@@ -176,14 +186,18 @@ end
 
 local function hasEffect(effectId: string): boolean
 	for appliedEffect, effect in pairs(distTable) do
-		if effectId == appliedEffect and effect ~= nil then print("effectId: " .. effectId) print("appliedEffect: " .. appliedEffect) print(effect ~= nil) return true end
+		if effectId == appliedEffect and effect ~= nil then
+			return true
+		end
 	end
 	return false
 end
 
 local function hasSpell(spellId: string, spellList: { core.Spell }): boolean
 	for _, spell in ipairs(spellList) do
-		if spell.id == spellId then return true end
+		if spell.id == spellId then
+			return true
+		end
 	end
 	return false
 end
@@ -201,7 +215,9 @@ end
 
 local function validateItemId(itemId: string): boolean
 	for _, itemRecords in ipairs(ITEM_INTERFACES) do
-		if (itemRecords as { string: any })[itemId] ~= nil then return true end
+		if (itemRecords as { string: any })[itemId] ~= nil then
+			return true
+		end
 	end
 	return false
 end
@@ -226,7 +242,9 @@ local function applyCosmetics(effectId: string, effects: { CEFEffect })
 	distTable[effectId].effects = {}
 	for _, effectData in ipairs(effects) do
 		local vfxId = effectId .. effectData.mesh
-		if vfxId == nil or anim.hasBone(this.object, effectData.node) == false then return end
+		if vfxId == nil or anim.hasBone(this.object, effectData.node) == false then
+			return
+		end
 		distTable[effectId].effects[#distTable[effectId].effects + 1] = vfxId
 		anim.addVfx(this as core.GameObject, effectData.mesh, {
     		loop = true,
@@ -249,7 +267,9 @@ local function applySpellDistribution(effectId: string, spells: { CEFSpell })
 	local actorSpells = types.Actor.spells(this as core.GameObject) as { core.Spell }
 	for _, spell in ipairs(spells) do
 		local foundSpell = findSpellByID(spell.spellId)
-		if foundSpell == nil then break end
+		if foundSpell == nil then
+			break
+		end
 		if spell.remove == true and hasSpell(spell.spellId, actorSpells) == true then
 			distTable[effectId].spells[#distTable[effectId].spells + 1] = { spellId = spell.spellId, remove = spell.remove }
 			(actorSpells as types.ActorSpells):remove(foundSpell)
@@ -276,7 +296,9 @@ local function applyItemDistribution(effectId: string, items: { CEFItem })
 	distTable[effectId].items = {}
 	local actorInventory = types.Actor.inventory(this as core.GameObject)
 	for _, item in ipairs(items) do
-		if validateItemId(item.itemId) == false then break end
+		if validateItemId(item.itemId) == false then
+			break
+		end
 		local inventoryCount = itemQuantity(item.itemId, actorInventory)
 		if item.remove == true and inventoryCount > 0 then
 			local removeQuantity: number = item.quantity
@@ -299,7 +321,9 @@ local function undoItemDistribution(effectId: string)
 			addItemToActor(item.itemId, item.quantity)
 		else
 			local removeQuantity = itemQuantity(item.itemId, actorInventory)
-			if removeQuantity >= item.quantity then removeQuantity = item.quantity end
+			if removeQuantity > item.quantity then
+				removeQuantity = item.quantity
+			end
 			removeItemFromActor(item.itemId, removeQuantity)
 		end
 	end
@@ -471,8 +495,11 @@ local CONDITIONS <const>: { { string, function(string, any) } } = {
 
 	{ "getRandom",
 		function(effectId: string, chance: number): boolean
-			if chance == 1 then return true
-			elseif chance < 1 then return false end
+			if chance == 1 then
+				return true
+			elseif chance < 1 then
+				return false
+			end
 			local seed: integer = 0
 			local seedString: string = this.object.id .. effectId
 			for i = 1, #seedString do
@@ -487,7 +514,9 @@ local CONDITIONS <const>: { { string, function(string, any) } } = {
 	{ "hasEffects",
 		function(_, effectIds: { string }): boolean
 			for _, effectId in ipairs(effectIds) do
-				if hasEffect(effectId) == false then return false end
+				if hasEffect(effectId) == false then
+					return false
+				end
 			end
 			return true
 		end
@@ -495,7 +524,9 @@ local CONDITIONS <const>: { { string, function(string, any) } } = {
 }
 
 local function checkEffectConditions(effectId: string, effect: CEFConfig)
-	if distTable[effectId] == nil then distTable[effectId] = {} end
+	if distTable[effectId] == nil then
+		distTable[effectId] = {}
+	end
 	for _, v1 in ipairs(effect.conditions) do
 		for _, v2 in ipairs(CONDITIONS) do
 			local condition = (v1 as { string: any })[v2[1]]
@@ -548,10 +579,6 @@ local function checkNearby()
 	end
 end
 
-local interface SaveData
-	distTable: { string: DistributionTable }
-end
-
 return {
    	engineHandlers = {
 		onSave = function(): SaveData
@@ -565,8 +592,8 @@ return {
 		onActive = function()
 			configData = storage.globalSection("CEF_ConfigData")
 			varsTable = storage.globalSection(this.object.id)
-			configSettings = storage.globalSection("SettingsCharacterEffectsFrameworkConfigs")
-			settings = storage.globalSection("SettingsGeneralCharacterEffectsFramework")
+			configSettings = storage.globalSection("SettingsConditionalEffectsFrameworkConfigs")
+			settings = storage.globalSection("SettingsGeneralConditionalEffectsFramework")
 			time.runRepeatedly(checkNearby, (settings:asTable().cefTickDelay as number), {})
 		end,
 		onUpdate = function()
