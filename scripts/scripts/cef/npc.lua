@@ -299,7 +299,7 @@ end
 
 local CONDITIONS = {
    { "charId",
-   function(condId)
+   function(_, condId)
       local charId = types.NPC.record(this.object).id
       for i = 1, #condId do
          if charId == condId[i] then
@@ -311,7 +311,7 @@ local CONDITIONS = {
    },
 
    { "race",
-   function(race)
+   function(_, race)
       local actorRace = types.NPC.record(this.object).race
       for i = 1, #race do
          if actorRace == race[i] then
@@ -323,38 +323,38 @@ local CONDITIONS = {
    },
 
    { "level",
-   function(level)
+   function(_, level)
       local actorLevel = types.Actor.stats.level(this.object)
       return compareRange(actorLevel.current, level)
    end,
    },
 
    { "isMale",
-   function(isMale)
+   function(_, isMale)
       return types.NPC.record(this.object).isMale == isMale
    end,
    },
 
    { "isWerewolf",
-   function(isWerewolf)
+   function(_, isWerewolf)
       return types.NPC.isWerewolf(this.object) == isWerewolf
    end,
    },
 
    { "isDead",
-   function(isDead)
+   function(_, isDead)
       return types.Actor.isDead(this.object) == isDead
    end,
    },
 
    { "isPlayer",
-   function(isPlayer)
+   function(_, isPlayer)
       return types.Player.objectIsInstance(this.object) == isPlayer
    end,
    },
 
    { "isSlave",
-   function(isSlave)
+   function(_, isSlave)
       local leftBracer = (types.Actor.getEquipment(this.object, EQUIP_SLOTS["leftgauntlet"]))
       local rightBracer = (types.Actor.getEquipment(this.object, EQUIP_SLOTS["rightgauntlet"]))
       local hasLeftBracer = leftBracer ~= nil and leftBracer.recordId == "slave_bracer_left"
@@ -364,7 +364,7 @@ local CONDITIONS = {
    },
 
    { "vars",
-   function(vars)
+   function(_, vars)
       if varsTable == nil then
          return false
       end
@@ -379,7 +379,7 @@ local CONDITIONS = {
    },
 
    { "dynStats",
-   function(dynStats)
+   function(_, dynStats)
       for k, range in pairs(dynStats) do
          local getStat = DYNAMIC_STATS[k];
          local dynStat = getStat and getStat(this.object)
@@ -392,7 +392,7 @@ local CONDITIONS = {
    },
 
    { "attributes",
-   function(attributes)
+   function(_, attributes)
       for k, range in pairs(attributes) do
          local getAttr = ATTRIBUTES[k]
          local attr = getAttr and getAttr(this.object)
@@ -405,7 +405,7 @@ local CONDITIONS = {
    },
 
    { "skills",
-   function(skills)
+   function(_, skills)
       for k, range in pairs(skills) do
          local getSkill = SKILLS[k]
          local skill = getSkill and getSkill(this.object)
@@ -418,7 +418,7 @@ local CONDITIONS = {
    },
 
    { "equipment",
-   function(equipment)
+   function(_, equipment)
       for k, v in pairs(equipment) do
          local equipped = types.Actor.getEquipment(this.object, EQUIP_SLOTS[string.lower(k)])
          if (equipped == nil and v == true) or (equipped ~= nil and v == false) then
@@ -430,14 +430,14 @@ local CONDITIONS = {
    },
 
    { "classes",
-   function(classes)
+   function(_, classes)
       local class = types.NPC.record(this.object).class
       return classes[string.lower(class)]
    end,
    },
 
    { "guilds",
-   function(guilds)
+   function(_, guilds)
       local actorGuilds = {}
       for _, v in ipairs(types.NPC.getFactions(this.object)) do
          actorGuilds[v] = true
@@ -461,12 +461,13 @@ local CONDITIONS = {
    },
 
    { "getRandom",
-   function(chance)
+   function(effectId, chance)
       if chance == 1 then return true
       elseif chance < 1 then return false end
       local seed = 0
-      for i = 1, #this.object.id do
-         seed = seed + this.object.id:byte(i)
+      local seedString = this.object.id .. effectId
+      for i = 1, #seedString do
+         seed = seed + seedString:byte(i)
       end
       math.randomseed(seed)
       local random = math.random(1, math.floor(chance))
@@ -479,7 +480,7 @@ local function checkEffectConditions(effectId, effect)
    for _, v1 in ipairs(effect.conditions) do
       for _, v2 in ipairs(CONDITIONS) do
          local condition = (v1)[v2[1]]
-         if condition ~= nil and v2[2](condition) == false then
+         if condition ~= nil and v2[2](effectId, condition) == false then
             if effect.effects ~= nil then
                removeCosmetics(effectId, effect.effects)
             end

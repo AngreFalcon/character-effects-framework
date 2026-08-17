@@ -297,9 +297,9 @@ local function undoItemDistribution(effectId: string)
 	distTable[effectId].items = nil
 end
 
-local CONDITIONS <const>: { { string, function(any) } } = {
+local CONDITIONS <const>: { { string, function(string, any) } } = {
 	{ "charId",
-		function(condId: { string }): boolean
+		function(_, condId: { string }): boolean
 			local charId = types.NPC.record(this.object as types.Actor).id
 			for i = 1, #condId do
 				if charId == condId[i] then
@@ -311,7 +311,7 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	},
 
 	{ "race",
-		function(race: { string }): boolean
+		function(_, race: { string }): boolean
 			local actorRace = types.NPC.record(this.object as types.Actor).race
 			for i = 1, #race do
 				if actorRace == race[i] then
@@ -323,38 +323,38 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	},
 
 	{ "level", 
-		function(level: CEFRange): boolean
+		function(_, level: CEFRange): boolean
 			local actorLevel = types.Actor.stats.level(this.object)
 			return compareRange(actorLevel.current, level)
 		end
 	},
 
 	{ "isMale",
-		function(isMale: boolean): boolean
+		function(_, isMale: boolean): boolean
 			return types.NPC.record(this.object as types.Actor).isMale == isMale
 		end
 	},
 
 	{ "isWerewolf",
-		function(isWerewolf: boolean): boolean
+		function(_, isWerewolf: boolean): boolean
 			return types.NPC.isWerewolf(this.object) == isWerewolf
 		end
 	},
 
 	{ "isDead",
-		function(isDead: boolean): boolean
+		function(_, isDead: boolean): boolean
 			return types.Actor.isDead(this.object) == isDead
 		end
 	},
 
 	{ "isPlayer",
-		function(isPlayer: boolean): boolean
+		function(_, isPlayer: boolean): boolean
 			return types.Player.objectIsInstance(this.object) == isPlayer
 		end
 	},
 
 	{ "isSlave",
-		function(isSlave: boolean): boolean
+		function(_, isSlave: boolean): boolean
 			local leftBracer = (types.Actor.getEquipment(this.object, EQUIP_SLOTS["leftgauntlet"]) as core.GameObject)
 			local rightBracer = (types.Actor.getEquipment(this.object, EQUIP_SLOTS["rightgauntlet"]) as core.GameObject)
 			local hasLeftBracer: boolean = leftBracer ~= nil and leftBracer.recordId == "slave_bracer_left"
@@ -364,7 +364,7 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	},
 
 	{ "vars",
-		function(vars: { string: CEFRange }): boolean
+		function(_, vars: { string: CEFRange }): boolean
 			if varsTable == nil then
 				return false
 			end
@@ -379,7 +379,7 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	},
 
 	{ "dynStats",
-		function(dynStats: { string: CEFRange }): boolean
+		function(_, dynStats: { string: CEFRange }): boolean
 			for k, range in pairs(dynStats) do
 				local getStat = DYNAMIC_STATS[k];
 				local dynStat = getStat and getStat(this.object)
@@ -392,7 +392,7 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	},
 
 	{ "attributes",
-		function(attributes: { string: CEFRange }): boolean
+		function(_, attributes: { string: CEFRange }): boolean
 			for k, range in pairs(attributes) do
 				local getAttr = ATTRIBUTES[k]
 				local attr = getAttr and getAttr(this.object)
@@ -405,7 +405,7 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	},
 
 	{ "skills",
-		function(skills: { string: CEFRange }): boolean
+		function(_, skills: { string: CEFRange }): boolean
 			for k, range in pairs(skills) do
 				local getSkill = SKILLS[k]
 				local skill = getSkill and getSkill(this.object)
@@ -418,7 +418,7 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	},
 
 	{ "equipment",
-		function(equipment: { string: boolean }): boolean
+		function(_, equipment: { string: boolean }): boolean
 			for k, v in pairs(equipment) do
 				local equipped = types.Actor.getEquipment(this.object, EQUIP_SLOTS[string.lower(k)])
 				if (equipped == nil and v == true) or (equipped ~= nil and v == false) then
@@ -430,14 +430,14 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	},
 
 	{ "classes",
-		function(classes: { string: boolean }): boolean
+		function(_, classes: { string: boolean }): boolean
 			local class = types.NPC.record(this.object).class
 			return classes[string.lower(class)]
 		end
 	},
 
 	{ "guilds",
-		function(guilds: { string: CEFGuild }): boolean
+		function(_, guilds: { string: CEFGuild }): boolean
 			local actorGuilds: { string: boolean } = {}
 			for _, v in ipairs(types.NPC.getFactions(this.object)) do
 				actorGuilds[v] = true
@@ -461,12 +461,13 @@ local CONDITIONS <const>: { { string, function(any) } } = {
 	},
 
 	{ "getRandom",
-		function(chance: number): boolean
+		function(effectId: string, chance: number): boolean
 			if chance == 1 then return true
 			elseif chance < 1 then return false end
 			local seed: integer = 0
-			for i = 1, #this.object.id do
-				seed = seed + this.object.id:byte(i)
+			local seedString: string = this.object.id .. effectId
+			for i = 1, #seedString do
+				seed = seed + seedString:byte(i)
 			end
 			math.randomseed(seed)
 			local random = math.random(1, math.floor(chance))
@@ -479,7 +480,7 @@ local function checkEffectConditions(effectId: string, effect: CEFConfig)
 	for _, v1 in ipairs(effect.conditions) do
 		for _, v2 in ipairs(CONDITIONS) do
 			local condition = (v1 as { string: any })[v2[1]]
-			if condition ~= nil and v2[2](condition) == false then
+			if condition ~= nil and v2[2](effectId, condition) == false then
 				if effect.effects ~= nil then
 					removeCosmetics(effectId, effect.effects)
 				end
