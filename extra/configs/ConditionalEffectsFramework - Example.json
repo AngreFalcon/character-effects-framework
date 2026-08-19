@@ -10,6 +10,7 @@
 				"isDead": false,
 				"isPlayer": false,
 				"isSlave": false,
+				"isBeastRace": false,
 				"vars": {
 					"companion": { "min": 1, "max": 1 }
 				},
@@ -28,7 +29,8 @@
 					"pants": false,
 					"robe": false,
 					"cuirass": false,
-					"rightgauntlet": false
+					"rightgauntlet": false,
+					"leftgauntlet": "slave_bracer_left"
 				},
 				"classes": {
 					"warrior": true,

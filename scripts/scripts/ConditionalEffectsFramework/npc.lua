@@ -396,6 +396,13 @@ local CONDITIONS = {
    end,
    },
 
+   { "isBeastRace",
+   function(_, isBeastRace)
+      local race = types.NPC.record(this.object).id
+      return types.NPC.races.record(race).isBeast == isBeastRace
+   end,
+   },
+
    { "vars",
    function(_, vars)
       if varsTable == nil then
@@ -454,7 +461,8 @@ local CONDITIONS = {
    function(_, equipment)
       for k, v in pairs(equipment) do
          local equipped = types.Actor.getEquipment(this.object, EQUIP_SLOTS[string.lower(k)])
-         if (equipped == nil and v == true) or (equipped ~= nil and v == false) then
+         if type(v) == "boolean" and (equipped == nil and v == true) or (equipped ~= nil and v == false) or
+            type(v) == "string" and ((equipped == nil) or (equipped ~= nil and (equipped).recordId ~= (v))) then
             return false
          end
       end
@@ -523,20 +531,33 @@ local CONDITIONS = {
    },
 }
 
+local function checkConditions(effectId, conditions)
+   local result = true
+   for _, v1 in ipairs(conditions) do
+      result = true
+      for _, v2 in ipairs(CONDITIONS) do
+         local condition = (v1)[v2[1]]
+         if condition ~= nil and v2[2](effectId, condition) == false then
+            result = false
+            break
+         end
+      end
+      if result == true then
+         return result
+      end
+   end
+   return result
+end
+
 local function checkEffectConditions(effectId, effect)
    if distTable[effectId] == nil then
       distTable[effectId] = {}
    end
-   for _, v1 in ipairs(effect.conditions) do
-      for _, v2 in ipairs(CONDITIONS) do
-         local condition = (v1)[v2[1]]
-         if condition ~= nil and v2[2](effectId, condition) == false then
-            if effect.effects ~= nil and distTable[effectId].effects ~= nil then
-               removeCosmetics(effectId)
-            end
-            return
-         end
+   if checkConditions(effectId, effect.conditions) == false then
+      if effect.effects ~= nil and distTable[effectId].effects ~= nil then
+         removeCosmetics(effectId)
       end
+      return
    end
    if effect.effects ~= nil and distTable[effectId].effects == nil then
       applyCosmetics(effectId, effect.effects)

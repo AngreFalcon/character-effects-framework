@@ -3,11 +3,17 @@
 		"conditions": [
 			{
 				"isSlave": true
+			},
+			{
+				"isPlayer": true,
+				"equipment": {
+					"shirt": true
+				}
 			}
 		],
 		"effects": [
 			{
-				"mesh": "meshes/cef/Slave Collar.nif",
+				"mesh": "meshes/ConditionalEffectsFramework/Slave Collar.nif",
 				"node": "neck"
 			}
 		]

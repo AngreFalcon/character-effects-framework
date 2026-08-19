@@ -396,6 +396,13 @@ local CONDITIONS <const>: { { string, function(string, any) } } = {
 		end
 	},
 
+	{ "isBeastRace",
+		function(_, isBeastRace: boolean): boolean
+			local race: string = types.NPC.record(this.object).id
+			return types.NPC.races.record(race).isBeast == isBeastRace
+		end
+	},
+
 	{ "vars",
 		function(_, vars: { string: CEFRange }): boolean
 			if varsTable == nil then
@@ -454,7 +461,8 @@ local CONDITIONS <const>: { { string, function(string, any) } } = {
 		function(_, equipment: { string: boolean }): boolean
 			for k, v in pairs(equipment) do
 				local equipped = types.Actor.getEquipment(this.object, EQUIP_SLOTS[string.lower(k)])
-				if (equipped == nil and v == true) or (equipped ~= nil and v == false) then
+				if type(v) == "boolean" and (equipped == nil and v == true) or (equipped ~= nil and v == false)
+				or type(v) == "string" and ((equipped == nil) or (equipped ~= nil and (equipped as core.GameObject).recordId ~= (v as string))) then
 					return false
 				end
 			end
@@ -523,20 +531,33 @@ local CONDITIONS <const>: { { string, function(string, any) } } = {
 	},
 }
 
+local function checkConditions(effectId: string, conditions: { CEFCondition }): boolean
+	local result: boolean = true
+	for _, v1 in ipairs(conditions) do
+		result = true
+		for _, v2 in ipairs(CONDITIONS) do
+			local condition = (v1 as { string: any })[v2[1]]
+			if condition ~= nil and v2[2](effectId, condition) == false then
+				result = false
+				break
+			end
+		end
+		if result == true then
+			return result
+		end
+	end
+	return result
+end
+
 local function checkEffectConditions(effectId: string, effect: CEFConfig)
 	if distTable[effectId] == nil then
 		distTable[effectId] = {}
 	end
-	for _, v1 in ipairs(effect.conditions) do
-		for _, v2 in ipairs(CONDITIONS) do
-			local condition = (v1 as { string: any })[v2[1]]
-			if condition ~= nil and v2[2](effectId, condition) == false then
-				if effect.effects ~= nil and distTable[effectId].effects ~= nil then
-					removeCosmetics(effectId)
-				end
-				return
-			end
+	if checkConditions(effectId, effect.conditions) == false then
+		if effect.effects ~= nil and distTable[effectId].effects ~= nil then
+			removeCosmetics(effectId)
 		end
+		return
 	end
 	if effect.effects ~= nil and distTable[effectId].effects == nil then
 		applyCosmetics(effectId, effect.effects)
